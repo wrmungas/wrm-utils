@@ -66,11 +66,10 @@ typedef struct wrm_Model {
 
 // camera data
 typedef struct wrm_Camera {
-    float pitch;
-    float yaw;
     float offset; // distance forward (positive) or backward (negative) along `facing` from `pos`: used for 3rd-person controls
     float fov;
     vec3 pos;
+    vec3 rot;
 } wrm_Camera;
 
 // data needed to render a model
@@ -167,6 +166,8 @@ extern wrm_Camera wrm_camera;
 extern wrm_Settings wrm_render_settings;
 extern bool wrm_render_is_initialized;
 
+extern wrm_Camera wrm_camera;
+
 /*
 Module internal functions
 */
@@ -182,4 +183,6 @@ void wrm_render_createErrorTexture(void);
 bool wrm_render_exists(wrm_Handle h, wrm_render_Resource_Type t, const char *caller, const char *context);
 // gets the default shader for a given mesh
 wrm_Option_Handle wrm_render_getDefaultShader(wrm_Handle mesh);
+// gets the view matrix from the current camera orientation
+void wrm_render_getViewMatrix(mat4 view);
 

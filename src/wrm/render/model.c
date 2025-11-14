@@ -81,21 +81,9 @@ bool wrm_render_updateModelTransform(wrm_Handle model, const vec3 pos, const vec
     }
     wrm_Model *data = (wrm_Model*)wrm_models.data;
 
-    if(pos) { 
-        data[model].pos[0] = pos[0]; 
-        data[model].pos[1] = pos[1];
-        data[model].pos[2] = pos[2];
-    }
-    if(rot) { 
-        data[model].rot[0] = rot[0];
-        data[model].rot[1] = rot[1];
-        data[model].rot[2] = rot[2];
-    }
-    if(scale) { 
-        data[model].scale[0] = scale[0];
-        data[model].scale[1] = scale[1];
-        data[model].scale[2] = scale[2];
-    }
+    if(pos) wrm_vec3_copy(pos, data->pos);
+    if(rot) wrm_vec3_copy(rot, data->rot);
+    if(scale) wrm_vec3_copy(scale, data->scale);
 
     return true;
 }
@@ -279,8 +267,8 @@ wrm_Option_Handle wrm_render_createTestTriangle(void)
     if(wrm_render_settings.verbose) printf("Render: Created test triangle mesh (handle=%d)\n", mesh.val);
 
     wrm_Model_Data model_data = {
-        .pos = {0.0f, 0.0f, 0.0f},
-        .rot = {0.0f, 0.0f, 0.0f},
+        .pos = {1.0f, 0.0f, 0.0f},
+        .rot = { [WRM_PITCH] = 0.0f, [WRM_YAW] = 180.0f, [WRM_ROLL] = 0.0f},
         .scale = {1.0f, 1.0f, 1.0f},
         .mesh = mesh.val,
         .texture = 0,

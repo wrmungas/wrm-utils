@@ -9,9 +9,9 @@ const static u8 floats_per_uv = 2;
 // default meshes
 const wrm_Mesh_Data default_meshes_colored_triangle = {
     .positions = (float[]) {
-        -0.5f, -0.5f, 0.0f,
-         0.0f,  0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
+        0.0f, 0.5f, 0.0f,
+        0.0f,-1.0f,-1.0f,
+        0.0f,-1.0f, 1.0f,
     },
     .colors = (float[]){
         1.0f, 0.0f, 0.0f, 1.0f,

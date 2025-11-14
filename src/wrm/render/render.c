@@ -45,8 +45,6 @@ bool wrm_show_ui;
 bool wrm_debug_frame;
 u32 wrm_ui_count;
 
-wrm_Camera wrm_camera;
-
 
 // SDL data 
 
@@ -68,8 +66,6 @@ Helpers (internal to just this file)
 */
 // initializes the internal renderer resource pools
 static void wrm_render_initLists(void);
-// gets the view matrix from the current camera orientation
-static void wrm_render_getViewMatrix(mat4 view);
 // sets the GL state before a draw call
 static void wrm_render_setGLStateAndDraw(wrm_Render_Data *curr, wrm_Render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed);
 // pack position, rotation, and scale into a transform matrix
@@ -137,15 +133,15 @@ bool wrm_render_init(const wrm_Settings *s, const wrm_Window_Data *data)
     if(wrm_render_settings.verbose) printf("Render: created default resources\n");
 
     // initialize GL data
-    wrm_bg_color = data->background;
+    wrm_bg_color = wrm_RGBAf_fromRGBA(data->background);
     glViewport(0, 0, wrm_window_width, wrm_window_height);
 
-    // initialize camera
+    // initialize camera with defaults
     wrm_camera = (wrm_Camera){
+        .pos = {0.0f, 0.0f, 0.0f},
+        .rot = {[WRM_PITCH] = 0.0f, [WRM_YAW] = 0.0f, [WRM_ROLL] = 0.0f},
         .fov = 70.0f,
         .offset = 0.0f,
-        .pitch = 0.0f,
-        .yaw = 0.0f
     };
 
     wrm_render_is_initialized = true;
@@ -263,36 +259,37 @@ void wrm_render_onWindowResize(void)
 void wrm_render_printDebugData(void)
 {
     wrm_debug_frame = true;
-    printf("DEBUG: Render:\n\nINTERNAL DATA\n\n");
+    printf("DEBUG: Render:\n\nINTERNAL DATA\n");
 
-    printf("Shaders: %zu total (memory for %zu): {\n", wrm_shaders.used, wrm_shaders.cap);
+    printf("\nShaders: %zu total (memory for %zu):\n", wrm_shaders.used, wrm_shaders.cap);
     for(u32 i = 0; i < wrm_shaders.cap; i++) {
         if(wrm_shaders.is_used[i]) {
             wrm_render_printShaderData(i);
         }
     }
-    printf("}\n");
-    printf("Textures: %zu total (memory for %zu): {\n", wrm_textures.used, wrm_textures.cap);
+
+    printf("\nTextures: %zu total (memory for %zu):\n", wrm_textures.used, wrm_textures.cap);
     for(u32 i = 0; i < wrm_textures.cap; i++) {
         if(wrm_textures.is_used[i]) {
             wrm_render_printTextureData(i);
         }
     }
-    printf("}\n");
-    printf("Meshes: %zu total (memory for %zu): {\n", wrm_meshes.used, wrm_meshes.cap);
+
+    printf("\nMeshes: %zu total (memory for %zu):\n", wrm_meshes.used, wrm_meshes.cap);
     for(u32 i = 0; i < wrm_meshes.cap; i++) {
         if(wrm_meshes.is_used[i]) {
             wrm_render_printMeshData(i);
         }
     }
-    printf("}\n");  
-    printf("Models: %zu total (memory for %zu)\n", wrm_models.used, wrm_models.cap);
+
+    printf("\nModels: %zu total (memory for %zu):\n", wrm_models.used, wrm_models.cap);
     for(u32 i = 0; i < wrm_models.cap; i++) {
         if(wrm_models.is_used[i]) {
             wrm_render_printModelData(i);
         }
     }
-    printf("}\n");
+
+    wrm_render_printCameraData();
 }
 
 void wrm_render_setUIShown(bool show_ui)
@@ -300,30 +297,54 @@ void wrm_render_setUIShown(bool show_ui)
     wrm_show_ui = show_ui;
 }
 
-void wrm_render_updateCamera(float pitch, float yaw, float fov, float offset, const vec3 pos)
+void wrm_render_getOrientation(const vec3 rot, vec3 forward, vec3 up, vec3 right)
 {
-    wrm_camera.pitch = pitch;
-    wrm_camera.yaw = yaw;
-    wrm_camera.fov = fov;
-    wrm_camera.offset = offset;
-    
-    wrm_camera.pos[0] = pos[0];
-    wrm_camera.pos[1] = pos[1];
-    wrm_camera.pos[2] = pos[2];
+    float pitch_r = glm_rad(rot[WRM_PITCH]);
+    float yaw_r = rot[WRM_YAW];
+    float roll_r = rot[WRM_ROLL];
+
+    // get forward from pitch and yaw
+    vec3 f = {
+        cosf(yaw_r) * cosf(pitch_r),
+        sinf(pitch_r),
+        -sinf(yaw_r) * cosf(pitch_r)
+    };
+    glm_vec3_normalize(f);
+
+    vec3 r;
+    glm_cross(f, GLM_YUP, r); // cross forward with up to get right (without roll)
+    versor quat;
+    glm_quatv(quat, roll_r, f); // get rotation quaternion around forward (roll)
+    glm_quat_rotatev(quat, r, r); // rotate around forward vector to take roll into account
+    glm_vec3_normalize(r);
+
+    vec3 u;
+    glm_cross(r, f, u); // cross right with facing to get up
+
+
+    if(forward) glm_vec3_copy(f, forward);
+    if(up) glm_vec3_copy(u, up);
+    if(right) glm_vec3_copy(r, right);
 }
 
-void wrm_render_getCameraData(float *pitch, float *yaw, float *fov, float *offset, vec3 position)
+void wrm_render_getOrientationXY(const vec3 rot, vec3 forward, vec3 right)
 {
-    if(pitch) *pitch = wrm_camera.pitch;
-    if(yaw) *yaw = wrm_camera.yaw;
-    if(fov) *fov = wrm_camera.fov;
-    if(offset) *offset = wrm_camera.offset;
+    float pitch_r = glm_rad(wrm_camera.rot[WRM_PITCH]);
+    float yaw_r = wrm_camera.rot[WRM_YAW];
+    float roll_r = wrm_camera.rot[WRM_ROLL];
 
-    if(position) {
-        position[0] = wrm_camera.pos[0];
-        position[1] = wrm_camera.pos[1];
-        position[2] = wrm_camera.pos[2];
-    }
+    vec3 f = {
+        cosf(yaw_r),
+        0.0f,
+        -sinf(yaw_r)
+    };
+    glm_vec3_normalize(f);
+    vec3 r;
+
+    glm_cross(f, GLM_YUP, r); // cross facing with world up to get camera right
+
+    if(forward) glm_vec3_copy(f, forward);
+    if(right) glm_vec3_copy(r, right);
 }
 
 // module internal 
@@ -418,37 +439,6 @@ static void wrm_render_addModelAndChildren(wrm_Handle m_handle, mat4 parent_tran
     for(u8 i = 0; i < m.child_count; i++) {
         wrm_render_addModelAndChildren(m.children[i], data.transform);
     }
-}
-
-static void wrm_render_getViewMatrix(mat4 view)
-{
-    // update camera facing direction
-    vec3 facing = {
-        cosf(glm_rad(wrm_camera.yaw)) * cosf(glm_rad(wrm_camera.pitch)),
-        sinf(glm_rad(wrm_camera.pitch)),
-        sinf(glm_rad(wrm_camera.yaw)) * cosf(glm_rad(wrm_camera.pitch))
-    };
-    glm_normalize(facing);
-
-    vec3 pos = {
-        wrm_camera.pos[0],
-        wrm_camera.pos[1],
-        wrm_camera.pos[2],
-    };
-    
-    // include offset in camera eye position
-    vec3 eye;
-    vec3 offset_vec;
-    // If offset > 0 (backward): Subtract direction vector * offset from player position
-    glm_vec3_scale(facing, wrm_camera.offset, offset_vec);
-    glm_vec3_sub(pos, offset_vec, eye); 
-
-    // get target point (can't just pass facing to lookAt())
-    vec3 target;
-    glm_vec3_add(eye, facing, target); 
-
-    // get the view projection matrix
-    glm_lookat(eye, target, wrm_world_up, view);
 }
 
 static void wrm_render_setGLStateAndDraw(wrm_Render_Data *curr, wrm_Render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed)
