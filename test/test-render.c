@@ -1,20 +1,21 @@
 #include "wrm/render.h"
 #include "stb/stb_image.h"
 
-int main(int argc, char **argv) {
-    wrm_Settings settings = {
-        .errors = true,
-        .test = true,
-        .verbose = true
-    };
+static wrm_Settings settings = {
+    .errors = true,
+    .test = true,
+    .verbose = true
+};
 
-    wrm_Window_Data window_data = {
-        .background = wrm_RGBAf_fromRGBA(0x100020ffU),
-        .height_px = WRM_DEFAULT_WINDOW_HEIGHT,
-        .width_px = WRM_DEFAULT_WINDOW_WIDTH,
-        .is_resizable = false,
-        .name = "Test wrm-render"
-    };
+static wrm_Window_Data window_data = {
+    .background = 0x100020ffU,
+    .height_px = 680,
+    .width_px = 800,
+    .is_resizable = false,
+    .name = "Test wrm-render"
+};
+
+int main(int argc, char **argv) {
 
     if(!wrm_render_init(&settings, &window_data)) {
         wrm_fail(1, "Test", "main()", "Failed to start renderer!");
@@ -25,13 +26,13 @@ int main(int argc, char **argv) {
         wrm_fail(1, "Test", "main()", "failed to create test model!");
     }
     
-    wrm_render_updateCamera(-30.0f, 45.0f, 70.0f, 0.0f, (vec3){-3.0f, 2.0f, -3.0f});
-    
     
 
-    wrm_Texture_Data td = {.is_font = false };
+    // texture test
     int width, height;
-    td.pixels = stbi_load("resources/bricks.jpeg", &width, &height, NULL, 4);
+    wrm_Texture_Data td = {
+        .pixels = stbi_load("resources/bricks.jpeg", &width, &height, NULL, 4)
+    };
     td.height = height;
     td.width = width;
     
@@ -41,13 +42,15 @@ int main(int argc, char **argv) {
     if(!wrm_render_updateModelTexture(cube.val, bricks_tex.val)) {
         wrm_fail(1, "Test", "main()", "failed to update cube texture!");
     }
-
     stbi_image_free(td.pixels);
 
+    wrm_render_updateModelTransform(cube.val, (vec3){4.0f, 0.0f, 0.0f}, NULL, NULL);
+
+    vec3 camera_pos = {-3.0f, 2.0f, -3.0f};
+    wrm_render_updateCamera(NULL, NULL, camera_pos, NULL);
     float angle = 0.0f;
 
     bool should_close = false;
-    
     while(!should_close) {
         SDL_Event e;
         while(SDL_PollEvent(&e)) {
@@ -56,13 +59,14 @@ int main(int argc, char **argv) {
             }
         }
         angle += 1.0f;
-        float value = cosf(glm_rad(angle));
-        vec3 new_pos = {value, 0.0f, 0.0f};
-        vec3 new_rot = {0.0f, angle, angle};
+        // float value = cosf(glm_rad(angle));
+        // vec3 new_pos = {value, 0.0f, 0.0f};
+        vec3 new_rot = {[WRM_ROLL] = angle, [WRM_PITCH] = 0.0f, [WRM_YAW] = 0.0f};
         
-        if(!wrm_render_updateModelTransform(cube.val, new_pos, new_rot, NULL)) {
-            wrm_fail(1, "Test", "main()", "failed to update model transform!");
-        }
+        wrm_render_updateCamera(NULL, NULL, NULL, new_rot);
+        // if(!wrm_render_updateModelTransform(cube.val, new_pos, new_rot, NULL)) {
+        //     wrm_fail(1, "Test", "main()", "failed to update model transform!");
+        // }
         wrm_render_draw();
     }
 

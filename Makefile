@@ -3,10 +3,13 @@ OBJ_DIR = build
 INC_DIR = include
 SRC_DIR = src
 BIN_DIR = bin
+TEST_DIR = test
 
 WRM_SUBDIRS = render menu memory
 WRM_ALLDIRS = wrm $(patsubst %,wrm/%,$(WRM_SUBDIRS))
-OBJ_SUBDIRS = test glad stb $(WRM_ALLDIRS)
+SRC_SUBDIRS = glad stb $(WRM_ALLDIRS)
+SRC_ALLDIRS = $(SRC_DIR) $(patsubst %,$(SRC_DIR)/%,$(SRC_SUBDIRS))
+OBJ_SUBDIRS = test $(SRC_ALLDIRS)
 OBJ_ALLDIRS = $(OBJ_DIR) $(patsubst %,$(OBJ_DIR)/%,$(OBJ_SUBDIRS))
 
 BUILD_DIRS = $(BIN_DIR) $(OBJ_ALLDIRS)
@@ -14,11 +17,13 @@ BUILD_DIRS = $(BIN_DIR) $(OBJ_ALLDIRS)
 # all source files
 SRCS = $(shell find $(SRC_DIR) -name '*.c')
 # all objects
-OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
+OBJS = $(patsubst %.c,$(OBJ_DIR)/%.o,$(SRCS))
 
-# the target executable
-EXE_NAMES = test-render
-EXES = $(BIN_DIR)/$(EXE_NAMES)
+TEST_SRCS = $(shell find $(TEST_DIR) -name '*.c')
+TEST_OBJS = $(patsubst %,$(OBJ_DIR)/%,$(TEST_SRCS))
+
+TEST_NAMES = test-render test-menu
+TESTS = $(patsubst %,$(BIN_DIR)/%,$(TEST_NAMES))
 
 # compiler variables
 CC = gcc
@@ -26,7 +31,7 @@ CFLAGS = -std=c99 -Wall -g -I$(INC_DIR) -I/usr/local/include/freetype2 -I/usr/in
 LDFLAGS = -lSDL2 -lGL -lm -lfreetype -lconfig
 
 .PHONY:
-all: $(BUILD_DIRS) $(EXES)
+all: $(BUILD_DIRS) $(TESTS)
 
 # setup build directory structure
 $(BUILD_DIRS):
@@ -35,21 +40,28 @@ $(BUILD_DIRS):
 
 # compile all
 # for some reason this doesn't work if I don't explicitly type the patterns
-build/%.o: src/%.c
+build/src/%.o: src/%.c
 	@echo $@:
 	@$(CC) -c $(CFLAGS) $^ -o $@
 
-$(EXES): $(OBJS)
+build/test/%.o: test/%.c
+	@echo $@:
+	@$(CC) -c $(CFLAGS) $^ -o $@
+
+$(TESTS): $(patsubst %,%.o,$@) $(OBJS)
 	@echo $@:
 	@$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 .PHONY:
-test:
+vars:
 	@echo BUILD_DIRS:
 	@echo $(BUILD_DIRS)
 	@echo 
 	@echo OBJS:
 	@echo $(OBJS)
+	@echo
+	@echo TESTS:
+	@echo $(TESTS)
 
 .PHONY:
 clean:
