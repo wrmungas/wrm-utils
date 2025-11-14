@@ -136,7 +136,7 @@ struct wrm_Texture_Data {
     u8 *pixels; // either an array of [4 * width * height] bytes, or NULL (user will update later)
     u32 width; // width of the texture, in pixels
     u32 height; // height of the texture, in pixels
-    u32 channels; // number of channels of pixel data (should be RGBA or RGB)
+    u32 channels; // number of channels of pixel data (should be 4, 3, or 1)
 };
 
 struct wrm_Mesh_Data {

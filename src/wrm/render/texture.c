@@ -19,48 +19,45 @@ wrm_RGBA wrm_RGBA_fromRGBAf(wrm_RGBAf rgbaf);
 
 wrm_Option_Handle wrm_render_createTexture(const wrm_Texture_Data *data)
 {
+    if(!data) return OPTION_NONE(Handle);
     wrm_Option_Handle result = wrm_Pool_getSlot(&wrm_textures);
-
     if(!result.exists) return result;
-
-    bool font = data->font;
 
     GLuint texture;
     glActiveTexture(GL_TEXTURE0);
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    GLuint gl_format = font ? GL_RED : GL_RGBA;
-    GLuint in_format = font ? GL_ALPHA : GL_RGBA;
-    if(font) {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    }
-
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(
-        GL_TEXTURE_2D,  // texture target type
-        0,              // detail level (for manually adding mipmaps; don't do this, generate them with glGenerateMipmap)
-        gl_format,      // format OpenGL should store the image with
-        data->width,    // width in pixels
-        data->height,   // height in pixels
-        0,              // border (weird legacy argument - borders should be set explicitly with glTexParameterxx)
-        in_format,      // format of the incoming image data
-        GL_UNSIGNED_BYTE,
-        data->pixels
-    );
-    
-    if(!font) { glGenerateMipmap(GL_TEXTURE_2D); }
-
-    ((wrm_Texture*)wrm_textures.data)[result.val] = (wrm_Texture){
+    wrm_Texture *t = wrm_Pool_dataAt(wrm_textures, wrm_Texture, result.val);
+    *t = (wrm_Texture){
         .gl_tex = texture,
         .w = data->width,
         .h = data->height,
     };
 
+    if(data->channels == 1) {
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        return result;
+    }
+
+    glTexImage2D(
+        GL_TEXTURE_2D,  // texture target type
+        0,              // detail level (for manually adding mipmaps; don't do this, generate them with glGenerateMipmap)
+        GL_RGBA,      // format OpenGL should store the image with
+        data->width,    // width in pixels
+        data->height,   // height in pixels
+        0,              // border (weird legacy argument - borders should be set explicitly with glTexParameterxx)
+        GL_RGBA,      // format of the incoming image data
+        GL_UNSIGNED_BYTE,
+        data->pixels
+    );
+    
+    glGenerateMipmap(GL_TEXTURE_2D);
     return result;
 }
 
@@ -72,7 +69,7 @@ bool wrm_render_updateTexture(wrm_Handle texture, wrm_Texture_Data *data, u32 x,
 
     wrm_Texture t = ((wrm_Texture*)wrm_textures.data)[texture];
 
-    GLuint gl_format = data->font ? GL_ALPHA : GL_RGBA;
+    GLuint gl_format = (data->channels == 1) ? GL_ALPHA : GL_RGBA;
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, t.gl_tex);
     glTexSubImage2D(GL_TEXTURE, 0, x, y, data->width, data->height, gl_format, GL_UNSIGNED_BYTE, data->pixels);

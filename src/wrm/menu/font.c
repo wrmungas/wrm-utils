@@ -47,7 +47,7 @@ wrm_Option_Handle wrm_menu_loadFont(const char *path)
 
     // create a GL texture for the character atlas
     wrm_Texture_Data d = {
-        .font = true,
+        .channels = 4,
         .height = h,
         .width = w,
         .pixels = NULL
