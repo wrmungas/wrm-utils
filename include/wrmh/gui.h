@@ -299,7 +299,7 @@ bool wrm_menu_init(wrm_Settings *s)
     // reserve element 0 as root of the hierarchy
     wrm_elements.used++;
     wrm_elements.is_used[0] = true;
-    wrm_Menu_Element *root = wrm_Pool_dataAs(wrm_elements, wrm_Menu_Element);
+    wrm_Menu_Element *root = wrm_Pool_AS(wrm_elements, wrm_Menu_Element);
 
     root->parent = 0;
     root->visible = false;
@@ -437,7 +437,7 @@ wrm_Option_Handle wrm_menu_createTextBox(wrm_Text_Box *data, float x, float y, u
         return OPTION_NONE(Handle);
     }
 
-    wrm_Menu_Element *tb = wrm_Pool_dataAs(wrm_elements, wrm_Menu_Element) + slot.Handle_val;
+    wrm_Menu_Element *tb = wrm_Pool_AS(wrm_elements, wrm_Menu_Element) + slot.Handle_val;
 
     *tb = (wrm_Menu_Element){
         .type = WRM_TEXT_BOX,
@@ -491,7 +491,7 @@ void wrm_menu_addChild(wrm_Handle parent, wrm_Handle child)
         return;
     }
 
-    wrm_Menu_Element *m = wrm_Pool_dataAs(wrm_elements, wrm_Menu_Element);
+    wrm_Menu_Element *m = wrm_Pool_AS(wrm_elements, wrm_Menu_Element);
 
     if(m[parent].child_count == WRM_MODEL_CHILD_LIMIT) {
         fprintf(stderr, "ERROR: Render: cannot add another child to model [%u] (limit reached!)\n", parent); 
@@ -522,7 +522,7 @@ void wrm_menu_removeChild(wrm_Handle parent, wrm_Handle child)
         return;
     }
 
-    wrm_Menu_Element *m = wrm_Pool_dataAs(wrm_elements, wrm_Menu_Element);
+    wrm_Menu_Element *m = wrm_Pool_AS(wrm_elements, wrm_Menu_Element);
 
     if(m[parent].child_count == 0) {
         fprintf(stderr, "ERROR: Menu: cannot remove child from model [%u] (has no children!)\n", parent); 
