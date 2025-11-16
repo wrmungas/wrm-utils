@@ -17,6 +17,7 @@ BUILD_DIRS = $(BIN_DIR) $(OBJ_ALLDIRS)
 # all source files
 SRCS = $(shell find $(SRC_DIR) -name '*.c')
 # all objects
+.PRECIOUS:
 OBJS = $(patsubst %.c,$(OBJ_DIR)/%.o,$(SRCS))
 
 TEST_SRCS = $(shell find $(TEST_DIR) -name '*.c')
@@ -48,9 +49,15 @@ build/test/%.o: test/%.c
 	@echo $@:
 	@$(CC) -c $(CFLAGS) $^ -o $@
 
-$(TESTS): $(patsubst %,%.o,$@) $(OBJS)
+bin/%: build/test/%.o $(OBJS)
 	@echo $@:
 	@$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+# empty rules so make doesn't fucking delete every built file
+$(OBJS):
+
+$(TEST_OBJS):
+
 
 .PHONY:
 vars:
