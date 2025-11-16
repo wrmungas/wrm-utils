@@ -45,10 +45,21 @@ void wrm_render_getViewMatrix(mat4 view)
 
 void wrm_render_printCameraData(void)
 {
+    vec3 facing;
+    vec3 up;
+    vec3 right;
+
+    wrm_render_getOrientation(wrm_camera.rot, facing, up, right);
     printf(
-        "Camera: { pos: < %f %f %f >, rot = < %f %f %f >, fov: %f, offset: %f }\n",
+        "Camera: {\n"
+        "   pos: < %f %f %f >, rot = < %f %f %f >, fov: %f, offset: %f\n"
+        "   facing: < %f %f %f >, up: < %f %f %f >, right: < %f %f %f >"
+        "}\n",
         wrm_camera.pos[WRM_X], wrm_camera.pos[WRM_Y], wrm_camera.pos[WRM_Z],
         wrm_camera.rot[WRM_ROLL], wrm_camera.rot[WRM_YAW], wrm_camera.rot[WRM_PITCH],
-        wrm_camera.fov, wrm_camera.offset
+        wrm_camera.fov, wrm_camera.offset,
+        facing[WRM_X], facing[WRM_Y], facing[WRM_Z],
+        up[WRM_X], up[WRM_Y], up[WRM_Z],
+        right[WRM_X], right[WRM_Y], right[WRM_Z]
     );
 }

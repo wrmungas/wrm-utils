@@ -20,8 +20,7 @@ Internal type definitions
 
 // shader GL data, plus requirements of meshes rendered with it
 typedef struct wrm_Shader {
-    bool needs_col;
-    bool needs_tex;
+    wrm_render_Format format;
     GLuint vert;
     GLuint frag;
     GLuint program;
@@ -36,6 +35,7 @@ typedef struct wrm_Texture {
 } wrm_Texture;
 
 typedef struct wrm_Mesh {
+    wrm_render_Format format;
     GLuint vao;
     GLuint pos_vbo;
     GLuint uv_vbo;
@@ -150,10 +150,6 @@ extern const u32 WRM_RENDER_LIST_SCALE_FACTOR;
 Module-level globals
 */
 
-
-// default shaders
-extern wrm_Shader_Defaults wrm_shader_defaults;
-
 extern u32 wrm_ui_count;
 
 extern wrm_Pool wrm_shaders;
@@ -163,7 +159,7 @@ extern wrm_Pool wrm_models;
 
 extern wrm_Camera wrm_camera;
 
-extern wrm_Settings wrm_render_settings;
+extern wrm_render_Settings wrm_render_settings;
 extern bool wrm_render_is_initialized;
 
 extern wrm_Camera wrm_camera;
@@ -175,9 +171,9 @@ Module internal functions
 // compiles a shader from the given shader text
 wrm_Option_GLuint wrm_render_compileShader(const char *shader_text, GLenum type);
 // creates a default shader for meshes with per-vertex colors, per-vertex uv's, and both
-void wrm_render_createDefaultShaders(void);
+bool wrm_render_createDefaultShaders(const char *shader_dir);
 // creates a default pink-and-black error texture
-void wrm_render_createErrorTexture(void);
+bool wrm_render_createErrorTexture(void);
 // checks whether resource handle `h` to a resource of type `t` is in use 
 // `caller` should be the name of the calling function, and `context` should explain the context of the check for helpful error messages
 bool wrm_render_exists(wrm_Handle h, wrm_render_Resource_Type t, const char *caller, const char *context);

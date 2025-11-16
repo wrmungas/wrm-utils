@@ -92,7 +92,7 @@ void wrm_render_printTextureData(wrm_Handle texture)
 
 // module internal
 
-void wrm_render_createErrorTexture(void)
+bool wrm_render_createErrorTexture(void)
 {
     wrm_RGBAi p = wrm_RGBAi_fromRGBA(WRM_RGBA_PURPLE);
     wrm_RGBAi b = wrm_RGBAi_fromRGBA(WRM_RGBA_BLACK);
@@ -112,9 +112,9 @@ void wrm_render_createErrorTexture(void)
 
     wrm_Option_Handle texture = wrm_render_createTexture(&t);
     if(!texture.exists) {
-        if(wrm_render_settings.errors) fprintf(stdout, "ERROR: Render: failed to create error texture\n");
-        return;
+        return false;
     }
 
     if(wrm_render_settings.verbose) printf("Render: created error texture\n");
+    return true;
 }

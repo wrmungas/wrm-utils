@@ -58,10 +58,6 @@ wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle 
 
     if(model->is_ui) { wrm_ui_count++; }
 
-    if(wrm_render_settings.verbose) {
-        printf("Model created:\n");
-        wrm_render_printModelData(result.val);
-    }
     return result;
 }
 
@@ -74,12 +70,12 @@ bool wrm_render_getModel(wrm_Handle model, wrm_Model *dest)
     return true;
 }
 
-bool wrm_render_updateModelTransform(wrm_Handle model, const vec3 pos, const vec3 rot, const vec3 scale)
+bool wrm_render_setModelTransform(wrm_Handle model, const vec3 pos, const vec3 rot, const vec3 scale)
 {
     if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, "updateModelTransform()", "")) {
         return false;
     }
-    wrm_Model *data = (wrm_Model*)wrm_models.data;
+    wrm_Model *data = wrm_Pool_dataAt(wrm_models, wrm_Model, model);
 
     if(pos) wrm_vec3_copy(pos, data->pos);
     if(rot) wrm_vec3_copy(rot, data->rot);
@@ -88,39 +84,53 @@ bool wrm_render_updateModelTransform(wrm_Handle model, const vec3 pos, const vec
     return true;
 }
 
-bool wrm_render_updateModelMesh(wrm_Handle model, wrm_Handle mesh) 
+bool wrm_render_addModelTransform(wrm_Handle model, const vec3 pos, const vec3 rot, const vec3 scale)
+{
+    if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, "updateModelTransform()", "")) {
+        return false;
+    }
+    wrm_Model *data = wrm_Pool_dataAt(wrm_models, wrm_Model, model);
+
+    if(pos) wrm_vec3_add(pos, data->pos);
+    if(rot) wrm_vec3_add(rot, data->rot);
+    if(scale) wrm_vec3_add(scale, data->scale);
+
+    return true;
+}
+
+bool wrm_render_setModelMesh(wrm_Handle model, wrm_Handle mesh) 
 {
     const char *caller = "updateModelMesh()";
     if(wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, caller, "(model)") && wrm_render_exists(mesh, WRM_RENDER_RESOURCE_MESH, caller, "(mesh)")) {
-        ((wrm_Model*)wrm_models.data)[model].mesh = mesh;
+        wrm_Pool_dataAt(wrm_models, wrm_Model, model)->mesh = mesh;
         return true;
     }
     return false;
 }
 
-bool wrm_render_updateModelTexture(wrm_Handle model, wrm_Handle texture)
+bool wrm_render_setModelTexture(wrm_Handle model, wrm_Handle texture)
 {
     const char *caller = "updateModelTexture()";
     if(wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, caller, "(model)") && wrm_render_exists(texture, WRM_RENDER_RESOURCE_TEXTURE, caller, "(texture)")) {
-        ((wrm_Model*)wrm_models.data)[model].texture = texture;
+        wrm_Pool_dataAt(wrm_models, wrm_Model, model)->texture = texture;
         return true;
     }
     return false;
 }
 
-bool wrm_render_updateModelShader(wrm_Handle model, wrm_Handle shader)
+bool wrm_render_setModelShader(wrm_Handle model, wrm_Handle shader)
 {
     const char *caller = "updateModelShader()";
     if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, caller, "") && wrm_render_exists(shader, WRM_RENDER_RESOURCE_SHADER, caller, "")) {
         return false;
     }
 
-    wrm_Model* mod = wrm_Pool_dataAs(wrm_models, wrm_Model) + model;
-    wrm_Shader sh = wrm_Pool_dataAs(wrm_shaders, wrm_Shader)[shader];
-    wrm_Mesh mesh = wrm_Pool_dataAs(wrm_meshes, wrm_Mesh)[mod->mesh];
+    wrm_Model *mod = wrm_Pool_dataAt(wrm_models, wrm_Model, model);
+    wrm_Shader *sh = wrm_Pool_dataAt(wrm_shaders, wrm_Shader, shader);
+    wrm_Mesh *mesh = wrm_Pool_dataAt(wrm_meshes, wrm_Mesh, mod->mesh);
 
     // ensure the shader and mesh are compatible
-    if( (sh.needs_col && !mesh.col_vbo) || (sh.needs_tex && !mesh.uv_vbo)) {
+    if( (sh->needs_col && !mesh->col_vbo) || (sh->needs_tex && !mesh->uv_vbo)) {
         if(wrm_render_settings.errors) wrm_error("Render", caller, "Mesh [%u] does not meet shader [%u] data requirements\n", mod->mesh, shader);
         return false;
     }
@@ -267,12 +277,12 @@ wrm_Option_Handle wrm_render_createTestTriangle(void)
     if(wrm_render_settings.verbose) printf("Render: Created test triangle mesh (handle=%d)\n", mesh.val);
 
     wrm_Model_Data model_data = {
-        .pos = {1.0f, 0.0f, 0.0f},
+        .pos = {0.0f, 0.0f, 0.0f},
         .rot = { [WRM_PITCH] = 0.0f, [WRM_YAW] = 180.0f, [WRM_ROLL] = 0.0f},
         .scale = {1.0f, 1.0f, 1.0f},
         .mesh = mesh.val,
         .texture = 0,
-        .shader = wrm_shader_defaults.color,
+        .shader = wrm_default_shaders.color,
         .is_visible = wrm_render_settings.test,
         .is_ui = false
     };
@@ -296,12 +306,12 @@ wrm_Option_Handle wrm_render_createTestCube(void)
     if(wrm_render_settings.verbose) printf("Render: Created test cube mesh (handle=%d)\n", mesh.val);
 
     wrm_Model_Data model_data = {
-        .pos = {1.0f, 0.0f, 0.0f},
+        .pos = {0.0f, 0.0f, 0.0f},
         .rot = {0.0f, 0.0f, 0.0f},
         .scale = {1.0f, 1.0f, 1.0f},
         .mesh = mesh.val,
         .texture = 0,
-        .shader = wrm_shader_defaults.texture,
+        .shader = wrm_default_shaders.texture,
         .is_visible = wrm_render_settings.test,
         .is_ui = false
     };

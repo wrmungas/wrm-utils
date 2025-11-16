@@ -7,11 +7,13 @@ const static u8 floats_per_col = 4;
 const static u8 floats_per_uv = 2;
 
 // default meshes
+
+// equilateral triangle centered at origin facing +x; colors: top = red, lower-right = green, lower-left = blue
 const wrm_Mesh_Data default_meshes_colored_triangle = {
     .positions = (float[]) {
-        0.0f, 0.5f, 0.0f,
-        0.0f,-1.0f,-1.0f,
-        0.0f,-1.0f, 1.0f,
+        0.0f, 0.577530f, 0.0f,
+        0.0f,-0.288675f,-0.5f,
+        0.0f,-0.288675f, 0.5f,
     },
     .colors = (float[]){
         1.0f, 0.0f, 0.0f, 1.0f,
@@ -28,6 +30,7 @@ const wrm_Mesh_Data default_meshes_colored_triangle = {
     .mode = GL_TRIANGLES,
 };
 
+// unit cube centered at zero, textured
 const wrm_Mesh_Data default_meshes_colored_cube = {
     .positions = (float[]) {
         -0.5f,  0.5f,  0.5f,
@@ -166,69 +169,64 @@ wrm_Option_Handle wrm_render_createMesh(const wrm_Mesh_Data *data)
 {
     if(!data) { return OPTION_NONE(Handle); }
     wrm_Option_Handle result = wrm_Pool_getSlot(&wrm_meshes);
+    wrm_Mesh *mesh = wrm_Pool_dataAt(wrm_meshes, wrm_Mesh, result.val);
+    *mesh = (wrm_Mesh){
+        .format = data->format,
+        .vao = 0,
+        .pos_vbo = 0,
+        .col_vbo = 0,
+        .uv_vbo = 0,
+        .ebo = 0,
+        .cw = data->cw,
+        .mode = data->mode,
+        .count = data->idx_cnt,
+    };
+
     GLuint vtx_attrib;
     GLuint gl_draw = data->dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
-    GLuint vao = 0;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
     
-    GLuint pos_vbo = 0;
-    glGenBuffers(1, &pos_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, pos_vbo);
-    glBufferData(GL_ARRAY_BUFFER, data->vtx_cnt * floats_per_pos * sizeof(float), data->positions, gl_draw);
+    glGenVertexArrays(1, &mesh->vao);
+    glBindVertexArray(mesh->vao);
 
-    vtx_attrib = WRM_SHADER_ATTRIB_POS_LOC;
-    glVertexAttribPointer(vtx_attrib, floats_per_pos, GL_FLOAT, GL_FALSE, floats_per_pos * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(vtx_attrib);
+    if(mesh->format.pos) {
+        glGenBuffers(1, &mesh->pos_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->pos_vbo);
+        glBufferData(GL_ARRAY_BUFFER, data->vtx_cnt * mesh->format.per_pos * sizeof(float), data->positions, gl_draw);
 
-    GLuint col_vbo = 0;
-    if(data->colors) {
-        glGenBuffers(1, &col_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, col_vbo);
+        vtx_attrib = WRM_SHADER_ATTRIB_POS_LOC;
+        glVertexAttribPointer(vtx_attrib, mesh->format.per_pos, GL_FLOAT, GL_FALSE, mesh->format.per_pos * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(vtx_attrib);
+    }
+    
+    if(mesh->format.col) {
+        glGenBuffers(1, &mesh->col_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->col_vbo);
         glBufferData(GL_ARRAY_BUFFER, data->vtx_cnt * floats_per_col * sizeof(float), data->colors, gl_draw);
 
         vtx_attrib = WRM_SHADER_ATTRIB_COL_LOC;
         glVertexAttribPointer(vtx_attrib, floats_per_col, GL_FLOAT, GL_FALSE, floats_per_col * sizeof(float), (void*)0);
         glEnableVertexAttribArray(vtx_attrib);
     }
-
-    GLuint uv_vbo = 0;
-    if(data->uvs) {
-        glGenBuffers(1, &uv_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, uv_vbo);
+    
+    if(mesh->format.tex) {
+        glGenBuffers(1, &mesh->uv_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->uv_vbo);
         glBufferData(GL_ARRAY_BUFFER, data->vtx_cnt * floats_per_uv * sizeof(float), data->uvs, gl_draw);
 
         vtx_attrib = WRM_SHADER_ATTRIB_UV_LOC;
         glVertexAttribPointer(vtx_attrib, floats_per_uv, GL_FLOAT, GL_FALSE, floats_per_uv * sizeof(float), (void*)0);
         glEnableVertexAttribArray(vtx_attrib);
     }
-
     
     GLuint ebo = 0;
     if(data->indices) {
         glGenBuffers(1, &ebo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-
-        // handle indices for different drawing modes
-
+        // handle indices for different drawing modes ?
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, data->idx_cnt * sizeof(u32), data->indices, gl_draw);
     }
-    
 
-    wrm_Mesh m = {
-        .vao = vao,
-        .pos_vbo = pos_vbo,
-        .col_vbo = col_vbo,
-        .uv_vbo = uv_vbo,
-        .ebo = ebo,
-        .count = data->idx_cnt,
-        .mode = data->mode, 
-        .cw = data->cw,
-    };
-
-    ((wrm_Mesh*)wrm_meshes.data)[result.val] = m;
     return result;
 }
 

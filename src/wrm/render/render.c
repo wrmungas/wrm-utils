@@ -32,7 +32,7 @@ Globals
 // Overall module status
 
 bool wrm_render_is_initialized = false;
-wrm_Settings wrm_render_settings;
+wrm_Render_Settings wrm_render_settings;
 
 // resource pools
 
@@ -79,7 +79,7 @@ static int wrm_render_compareRenderData(const void *model1, const void *model2);
 
 // user-visible 
 
-bool wrm_render_init(const wrm_Settings *s, const wrm_Window_Data *data)
+bool wrm_render_init(const wrm_Render_Settings *s, const wrm_Window_Data *data)
 {
     wrm_render_settings = *s;
 
@@ -126,9 +126,19 @@ bool wrm_render_init(const wrm_Settings *s, const wrm_Window_Data *data)
 
     // add default resources to each list: the handle value 0 refers to these
     // setup default shaders
-    wrm_render_createDefaultShaders();
+    if(!wrm_render_createDefaultShaders(wrm_render_settings.shaders_dir)) {
+        wrm_error("Render", "init()", "unable to create default shaders!");
+        return false;
+    }
     // setup default texture
-    wrm_render_createErrorTexture();
+    if(!wrm_render_createErrorTexture()) {
+        wrm_error("Render", "init()", "unable to create error texture!");
+        return false;
+    }
+    // reserve model 0 as the implicit parent model
+    wrm_Option_Handle result = wrm_Pool_getSlot(&wrm_models);
+    if(!result.exists && result.val == 0) wrm_error("Render", "init()", "failed to reserve model 0 (implicit root)");
+
     
     if(wrm_render_settings.verbose) printf("Render: created default resources\n");
 
@@ -297,11 +307,14 @@ void wrm_render_setUIShown(bool show_ui)
     wrm_show_ui = show_ui;
 }
 
+// force compiler to emit a symbol
+void wrm_vec3_copy(const vec3 src, vec3 dest);
+
 void wrm_render_getOrientation(const vec3 rot, vec3 forward, vec3 up, vec3 right)
 {
     float pitch_r = glm_rad(rot[WRM_PITCH]);
-    float yaw_r = rot[WRM_YAW];
-    float roll_r = rot[WRM_ROLL];
+    float yaw_r = glm_rad(rot[WRM_YAW]);
+    float roll_r = glm_rad(rot[WRM_ROLL]);
 
     // get forward from pitch and yaw
     vec3 f = {
@@ -313,9 +326,7 @@ void wrm_render_getOrientation(const vec3 rot, vec3 forward, vec3 up, vec3 right
 
     vec3 r;
     glm_cross(f, GLM_YUP, r); // cross forward with up to get right (without roll)
-    versor quat;
-    glm_quatv(quat, roll_r, f); // get rotation quaternion around forward (roll)
-    glm_quat_rotatev(quat, r, r); // rotate around forward vector to take roll into account
+    glm_vec3_rotate(r, roll_r, f); // rotate around forward vector to take roll into account
     glm_vec3_normalize(r);
 
     vec3 u;
@@ -329,9 +340,7 @@ void wrm_render_getOrientation(const vec3 rot, vec3 forward, vec3 up, vec3 right
 
 void wrm_render_getOrientationXY(const vec3 rot, vec3 forward, vec3 right)
 {
-    float pitch_r = glm_rad(wrm_camera.rot[WRM_PITCH]);
-    float yaw_r = wrm_camera.rot[WRM_YAW];
-    float roll_r = wrm_camera.rot[WRM_ROLL];
+    float yaw_r = glm_rad(wrm_camera.rot[WRM_YAW]);
 
     vec3 f = {
         cosf(yaw_r),
@@ -399,7 +408,8 @@ static void wrm_render_prepareModels(bool ui_pass)
 
     wrm_Model *models = wrm_Pool_dataAs(wrm_models, wrm_Model);
 
-    for(u32 i = 0; i < wrm_models.cap; i++) {
+    // skip model 0 (implicit parent)
+    for(u32 i = 1; i < wrm_models.cap; i++) {
         if(wrm_models.is_used[i] && !models[i].parent && models[i].is_ui == ui_pass) {
             wrm_render_addModelAndChildren(i, NULL);
         }
@@ -500,9 +510,9 @@ static void wrm_render_packTransform(vec3 pos, vec3 rot, vec3 scale, mat4 transf
     //glm_euler_yxz_quat_rh(as_rad, quat);
     //glm_quat_mat4(quat, transform);
 
-    glm_rotate_y(transform, as_rad[1], transform);
-    glm_rotate_x(transform, as_rad[0], transform);
-    glm_rotate_z(transform, as_rad[2], transform);
+    glm_rotate_y(transform, as_rad[WRM_YAW], transform);
+    glm_rotate_z(transform, as_rad[WRM_PITCH], transform);
+    glm_rotate_x(transform, as_rad[WRM_ROLL], transform);
 
     
 

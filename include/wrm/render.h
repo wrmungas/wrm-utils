@@ -28,8 +28,8 @@ REQUIREMENTS:
 */
 
 #include "wrm/common.h"
+#include "wrm/linmath.h"
 #include "SDL2/SDL.h"
-#include "cglm/cglm.h"
 
 /*
 Externally visible constants
