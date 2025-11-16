@@ -55,3 +55,12 @@ extern wrm_Stack wrm_fonts;
 
 extern wrm_Pool wrm_gui_elements;
 // extern wrm_Pool wrm_gui_child_lists; unused for now
+
+/*
+Module internal functions
+*/
+
+/* Draws text to the screen */
+void wrm_gui_drawText(wrm_Text *t);
+/* Draws a pane to the screen */
+void wrm_gui_drawPane(wrm_Pane *p);

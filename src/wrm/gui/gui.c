@@ -1,9 +1,11 @@
 #include "gui.h"
+#include "../render/render.h"
 
 FT_Library wrm_ft_library;
 wrm_Stack wrm_fonts;
 
 wrm_Pool wrm_gui_elements;
+wrm_Stack wrm_gui_tbd; // elements to be drawn
 
 static const char *WRM_GUI_SHADER_V_NAME = "ui.vert";
 static const char *WRM_GUI_SHADER_F_NAME = "ui.frag";
@@ -13,6 +15,7 @@ wrm_Handle wrm_gui_shader;
 
 // file-internal helper declarations
 static wrm_Option_Handle wrm_gui_loadShader(const char *shader_dir);
+static void wrm_gui_prepareElements(void);
 
 // user-visible
 
@@ -32,6 +35,9 @@ bool wrm_gui_init(const char *shader_dir)
         wrm_error("GUI", "init()", "failed to initialize elements pool");
         return false;
     }
+    if(!wrm_Stack_init(&wrm_gui_tbd, WRM_GUI_INITIAL_ELEMENTS_CAPACITY, sizeof(wrm_gui_Element), true)) {
+        wrm_error("GUI", "init()", "failed to initialize fonts list");
+    }
 
     wrm_Option_Handle shader = wrm_gui_loadShader(shader_dir);
     if(!shader.exists) {
@@ -50,8 +56,29 @@ void wrm_gui_update(void)
 
 void wrm_gui_draw(void)
 {
+    glDisable(GL_DEPTH_TEST);
 
     wrm_gui_prepareElements();
+
+    if(wrm_render_debug_frame) {
+        printf("\nFRAME DRAW DATA:\n\nGUI (2D) PASS (%zu elements%s to be drawn):\n", wrm_gui_tbd.len, wrm_gui_tbd.len == 1 ? "" : "s");
+    }
+
+    for(u32 i = 0; i < wrm_gui_tbd.len; i++) {
+        wrm_gui_Element *e = wrm_Pool_AT(wrm_gui_tbd, wrm_gui_Element, i);
+
+        switch(e->properties.type) {
+            case WRM_GUI_TEXT:
+                wrm_gui_drawText((wrm_Text*)e);
+                break;
+            case WRM_GUI_PANE:
+                wrm_gui_drawPane((wrm_Pane*)e);
+                break;
+            default:
+                // do nothing
+                break;
+        }
+    }
 
     
 }
@@ -87,12 +114,23 @@ static wrm_Option_Handle wrm_gui_loadShader(const char *shader_dir)
         return OPTION_NONE(Handle);
     }
 
+    wrm_render_Format format = {
+        .col = false,
+        .tex = true,
+        .per_pos = 2
+    };
+
     wrm_Option_Handle result; 
-    result = wrm_render_createShader(vert, frag, true, true);
+    result = wrm_render_createShader(vert, frag, format);
     free(vert);
     free(frag);
     free(vert_path);
     free(frag_path);
     
     return result;
+}
+
+static void wrm_gui_prepareElements(void)
+{
+    // get a list of visible elements, sorted back-to-front
 }
