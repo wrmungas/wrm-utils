@@ -2,13 +2,13 @@
 #define WRM_COMMON_H
 
 /*
-File wrm-common.h
+File common.h
 
 Created  Oct 29, 2025 
 by William R Mungas (wrm)
 
 Version: 0.1.0 
-(Last modified Nov 7, 2025)
+(Last modified Nov 14, 2025)
 
 DESCRIPTION:
 Standard baseline for my wrm utility headers, used by all of the others.
@@ -28,14 +28,8 @@ PROVIDES:
     for usage with switch statements; and a macro for slightly cleaner syntax
 
 REQUIREMENTS:
-Linkage: -lm
-
-The current version of this file is header-only: YOU, the user, must have the 
-following in some .c file in your project:
-    #define WRM_COMMON_IMPLEMENTATION
-    #include "wrm-common.h"
-
-This is necessary to define the functions declared in this file properly
+Must link with C standard library
+Must link with C standard math: -lm on unix systems
 
 */
 
@@ -175,6 +169,10 @@ Can use this for switch statements on a set of strings
     sizeof (const char*[]){__VA_ARGS__} / sizeof (const char*) )
 
 
-
+/*
+Reads the contents of the file at `path` to a string
+The string is allocated by `malloc` and should be freed by the caller
+*/
+char *wrm_readFile(const char *path);
 
 #endif // end include guards

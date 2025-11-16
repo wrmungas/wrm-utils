@@ -35,14 +35,6 @@ REQUIREMENTS:
 Externally visible constants
 */
 
-#define WRM_X 0
-#define WRM_Y 1
-#define WRM_Z 2
-
-#define WRM_PITCH WRM_Z
-#define WRM_YAW WRM_Y
-#define WRM_ROLL WRM_X
-
 extern const u32 WRM_MESH_TRIANGLE;
 extern const u32 WRM_MESH_STRIP;
 extern const u32 WRM_MESH_FAN;
@@ -76,11 +68,15 @@ extern const u32 WRM_DEFAULT_WINDOW_HEIGHT;
 Type Declarations
 */
 
+// render module settings
+typedef struct wrm_render_Settings wrm_render_Settings;
 // window creation arguments
 typedef struct wrm_Window_Data wrm_Window_Data; 
 
+// data format for meshes and shaders
+typedef struct wrm_render_Format wrm_render_Format;
 // simple shaders for various mesh types
-typedef struct wrm_Shader_Defaults wrm_Shader_Defaults;
+typedef struct wrm_Default_Shaders wrm_Default_Shaders;
 
 // single 32-bit integer rgba value
 typedef u32 wrm_RGBA;
@@ -103,6 +99,12 @@ typedef struct wrm_Model_Data wrm_Model_Data;
 Type definitions
 */
 
+struct wrm_render_Settings {
+    bool verbose;
+    bool test;
+    bool errors;
+    char *shaders_dir;
+};
 
 struct wrm_Window_Data {
     const char *name; // the name of the window
@@ -112,10 +114,17 @@ struct wrm_Window_Data {
     wrm_RGBA background; // RGBA background color (packed as a 32-bit unsigned integer)
 };
 
-struct wrm_Shader_Defaults {
+struct wrm_render_Format {
+    bool col;
+    bool tex;
+    bool pos;
+    u8 per_pos; // values per position, e.g. 3 for (x,y,z) coordinates, 2 for (x,y)
+    // to add: normals, material properties, etc
+};
+
+struct wrm_Default_Shaders {
     wrm_Handle color; // default shader for a mesh with RGBA color attributes
     wrm_Handle texture; // default shader for a mesh with uv texture coordinates
-    wrm_Handle both; // default shader for a mix of color and texture
 };
 
 struct wrm_RGBAi {
@@ -140,6 +149,7 @@ struct wrm_Texture_Data {
 };
 
 struct wrm_Mesh_Data {
+    wrm_render_Format format; // data format of the mesh: must match shader used
     float *positions;       // position for each vertex
     float *colors;          // RGBA color for each vertex
     float *uvs;             // uv for each vertex
@@ -149,7 +159,6 @@ struct wrm_Mesh_Data {
     u32 mode;
     bool cw;                // does the mesh use a clockwise winding order?
     bool dynamic;           // will we be frequently updating this mesh?
-    bool ui;                // is this a ui mesh? (all positions are x-y in orthographic view space, assumed to be the same z)
 };
 
 struct wrm_Model_Data { 
@@ -166,14 +175,14 @@ struct wrm_Model_Data {
 };
 
 // default shaders - initialized within `render_init()`
-extern wrm_Shader_Defaults wrm_shader_defaults;
+extern wrm_Default_Shaders wrm_default_shaders;
 
 /*
 Module functions
 */
 
 /* Initialize the renderer - opens a window with a GL context, sets up default shaders */
-bool wrm_render_init(const wrm_Settings *settings, const wrm_Window_Data *data);
+bool wrm_render_init(const wrm_render_Settings *settings, const wrm_Window_Data *data);
 /* Shut down the renderer and clean up resources */
 void wrm_render_quit(void);
 /* Cleans up any unused/freed resources and renders all currently visible objects */
@@ -190,7 +199,7 @@ void wrm_render_setUIShown(bool show_ui);
 // shader-related
 
 /* Creates a shader program using the given shader source strings */
-wrm_Option_Handle wrm_render_createShader(const char *vert, const char *frag, bool needs_col, bool needs_tex);
+wrm_Option_Handle wrm_render_createShader(const char *vert, const char *frag, wrm_render_Format format);
 /* For debugging; prints a shader's data to `stdout` */
 void wrm_render_printShaderData(wrm_Handle shader);
 // texture-related
@@ -206,9 +215,9 @@ void wrm_render_printTextureData(wrm_Handle texture);
 
 /* Create a mesh */
 wrm_Option_Handle wrm_render_createMesh(const wrm_Mesh_Data *data);
-/* Clones an existing mesh (useful for changing data without affecting all instances of this mesh)*/
+/* Clones an existing mesh (useful for changing the mesh of a specific model without affecting others) */
 wrm_Option_Handle wrm_render_cloneMesh(wrm_Handle mesh);
-/* Updates a mesh's data: IMPORTANT: will update ALL existing instances of this mesh */
+/* Updates a mesh's data: IMPORTANT: ALL models using this mesh will now use the updated version */
 bool wrm_render_updateMesh(wrm_Handle mesh, const wrm_Mesh_Data *data);
 /* For debugging; prints a mesh's data to `stdout` */
 void wrm_render_printMeshData(wrm_Handle mesh);
@@ -217,14 +226,16 @@ void wrm_render_printMeshData(wrm_Handle mesh);
 
 /* Create a model - if use_default_shader is true, the renderer will attempt to select a default shader based on the mesh attributes */
 wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle parent, bool use_default_shader);
-/* Update a model's transform data */
-bool wrm_render_updateModelTransform(wrm_Handle model, const vec3 pos, const vec3 rot, const vec3 scale);
-/* Update a model's mesh */
-bool wrm_render_updateModelMesh(wrm_Handle model, wrm_Handle mesh);
-/* Update a model's texture*/
-bool wrm_render_updateModelTexture(wrm_Handle model, wrm_Handle texture);
-/* Update a model's shader - checks for compatibility with the model's mesh */
-bool wrm_render_updateModelShader(wrm_Handle model, wrm_Handle shader);
+/* Sets the given model's transform to the argument values, ignoring any NULL arguments */
+bool wrm_render_setModelTransform(wrm_Handle model, const vec3 pos, const vec3 rot, const vec3 scale);
+/* Adds the argument values to the given model's transform, ignoring any NULL arguments */
+bool wrm_render_addModelTransform(wrm_Handle model, const vec3 pos, const vec3 rot, const vec3 scale);
+/* Set a model's mesh */
+bool wrm_render_setModelMesh(wrm_Handle model, wrm_Handle mesh);
+/* Set a model's texture*/
+bool wrm_render_setModelTexture(wrm_Handle model, wrm_Handle texture);
+/* Set a model's shader - checks for compatibility with the model's mesh */
+bool wrm_render_setModelShader(wrm_Handle model, wrm_Handle shader);
 /* Associates models `child` and `parent` as such */
 bool wrm_render_addChild(wrm_Handle parent, wrm_Handle child);
 /* Orphans model `child` from `parent` */
@@ -293,15 +304,6 @@ inline wrm_RGBAf wrm_RGBAf_fromRGBAi(wrm_RGBAi rgbai)
 
 // vector functions
 
-/* useful since cglm doesn't automatically provide const-correct copy for some reason */
-inline void wrm_vec3_copy(const vec3 src, vec3 dest)
-{
-    if(src && dest && src != dest) {
-        dest[WRM_X] = src[WRM_X];
-        dest[WRM_Y] = src[WRM_Y];
-        dest[WRM_Z] = src[WRM_Z];
-    }
-}
 /* get forward, up, and right vectors from a given orientation vector: applies yaw->pitch->roll*/
 void wrm_render_getOrientation(const vec3 rot, vec3 forward, vec3 up, vec3 right);
 /* gets forward and right vectors in the x-z plane from a given rotation (calculated from yaw only)*/

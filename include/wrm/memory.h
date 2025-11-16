@@ -1,6 +1,27 @@
 #ifndef WRM_MEMORY_H
 #define WRM_MEMORY_H
 
+/*
+File memory.h
+
+Created  Nov 14, 2025 
+by William R Mungas (wrm)
+
+Version: 0.1.0 
+(Last modified Nov 14, 2025)
+
+DESCRIPTION:
+Basic memory structures for efficient applications
+
+PROVIDES:
+- pool type: a collection of objects of a known size, to be randomly accessed, modified, or removed
+- stack type: a list of elements of known size with stack behavior, growing until a rollback
+
+REQUIREMENTS:
+Must link with C standard library
+
+*/
+
 #include "wrm/common.h"
 
 #define WRM_MEMORY_GROWTH_FACTOR 2

@@ -2,13 +2,13 @@
 #define WRM_INPUT_H
 
 /*
-File wrm-input.h
+File input.h
 
 Created  Nov 3, 2025
 by William R Mungas (wrm)
 
 Version: 0.1.0 
-(Last modified Nov 6, 2025)
+(Last modified Nov 14, 2025)
 
 DESCRIPTION:
 Basic input checking, essentially a wrapper over SDL functions.
