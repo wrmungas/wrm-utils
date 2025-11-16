@@ -49,10 +49,40 @@ int wrm_cstrn_match(size_t len, const char *src, const char **opts, size_t n_opt
     return 0;
 }
 
-
 void wrm_va_error(const char *module, const char *function, const char *format, va_list args)
 {
     fprintf(stderr, "ERROR: %s: %s: ", module, function);
     vfprintf(stderr, format, args);
     fprintf(stderr, "\n");
+}
+
+char *wrm_readFile(const char *path)
+{
+    FILE *fp = fopen(path, "r");
+    if(!fp) return NULL;
+
+    fseek(fp, 0, SEEK_END);
+    long bytes = ftell(fp);
+    if(bytes < 1) {
+        fclose(fp); 
+        return NULL;
+    }
+
+    char *dest = malloc(bytes + 1);
+    if(!dest) {
+        fclose(fp);
+        return NULL;
+    }
+
+    rewind(fp);
+    size_t copied = fread(dest, 1, bytes, fp);
+    if(copied != bytes) {
+        fclose(fp);
+        free(dest);
+        return NULL;
+    }
+
+    dest[bytes] = '\0';
+    fclose(fp);
+    return dest;
 }
