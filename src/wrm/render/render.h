@@ -72,14 +72,6 @@ typedef struct wrm_Camera {
     vec3 rot;
 } wrm_Camera;
 
-// data needed to render a model
-typedef struct wrm_Render_Data {
-    mat4 transform;
-    wrm_Handle mesh;
-    wrm_Handle shader;
-    wrm_Handle texture;
-    wrm_Handle src_model;
-} wrm_Render_Data;
 
 DEFINE_OPTION(GLuint, GLuint);
 
@@ -161,6 +153,11 @@ extern wrm_Camera wrm_camera;
 
 extern wrm_render_Settings wrm_render_settings;
 extern bool wrm_render_is_initialized;
+
+extern int wrm_window_width;
+extern int wrm_window_height;
+
+extern bool wrm_render_debug_frame;
 
 extern wrm_Camera wrm_camera;
 

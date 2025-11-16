@@ -184,8 +184,10 @@ Module functions
 bool wrm_render_init(const wrm_render_Settings *settings, const wrm_Window_Data *data);
 /* Shut down the renderer and clean up resources */
 void wrm_render_quit(void);
-/* Cleans up any unused/freed resources and renders all currently visible objects */
+/* Main drawing pass: renders all visible models to the framebuffer */
 void wrm_render_draw(void);
+/* Presents the next frame to the screen (separated from draw to allow for multiple passes over a frame) */
+void wrm_render_present(void);
 /* Get the window created by the render - may be needed by other modules */
 SDL_Window *wrm_render_getWindow(void);
 /* Updates renderer on a window resize event */

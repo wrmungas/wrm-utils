@@ -1,6 +1,20 @@
 #include "render.h"
 
 /*
+File-internal types
+*/
+
+
+// data needed to render a model
+typedef struct wrm_render_Data {
+    mat4 transform;
+    wrm_Handle mesh;
+    wrm_Handle shader;
+    wrm_Handle texture;
+    wrm_Handle src_model;
+} wrm_render_Data;
+
+/*
 Constants
 */
 
@@ -32,7 +46,7 @@ Globals
 // Overall module status
 
 bool wrm_render_is_initialized = false;
-wrm_Render_Settings wrm_render_settings;
+wrm_render_Settings wrm_render_settings;
 
 // resource pools
 
@@ -42,7 +56,7 @@ wrm_Pool wrm_textures;
 wrm_Pool wrm_models;
 
 bool wrm_show_ui;
-bool wrm_debug_frame;
+bool wrm_render_debug_frame;
 u32 wrm_ui_count;
 
 
@@ -54,8 +68,8 @@ SDL_GLContext wrm_gl_context; // gl context obtained from SDL
 // GL data
 
 wrm_RGBAf wrm_bg_color; // background color
-static int wrm_window_height;
-static int wrm_window_width;
+int wrm_window_height;
+int wrm_window_width;
 vec3 wrm_world_up = {0.0f, 1.0f, 0.0f};
 
 /* a list of models to be drawn (used solely in render_draw() )*/
@@ -67,7 +81,7 @@ Helpers (internal to just this file)
 // initializes the internal renderer resource pools
 static void wrm_render_initLists(void);
 // sets the GL state before a draw call
-static void wrm_render_setGLStateAndDraw(wrm_Render_Data *curr, wrm_Render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed);
+static void wrm_render_setGLStateAndDraw(wrm_render_Data *curr, wrm_render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed);
 // pack position, rotation, and scale into a transform matrix
 static void wrm_render_packTransform(vec3 pos, vec3 rot, vec3 scale, mat4 transform);
 // creates a list from the pool of models, sorted by GL state changes
@@ -79,7 +93,7 @@ static int wrm_render_compareRenderData(const void *model1, const void *model2);
 
 // user-visible 
 
-bool wrm_render_init(const wrm_Render_Settings *s, const wrm_Window_Data *data)
+bool wrm_render_init(const wrm_render_Settings *s, const wrm_Window_Data *data)
 {
     wrm_render_settings = *s;
 
@@ -155,7 +169,7 @@ bool wrm_render_init(const wrm_Render_Settings *s, const wrm_Window_Data *data)
     };
 
     wrm_render_is_initialized = true;
-    wrm_debug_frame = false;
+    wrm_render_debug_frame = false;
     return true;
 }
 
@@ -202,55 +216,31 @@ void wrm_render_draw(void)
     wrm_render_prepareModels(false);
     
     // initialize GL state and tracking of changes
-    wrm_Render_Data *prev = NULL;
-    wrm_Render_Data *curr = wrm_Stack_dataAs(wrm_tbd, wrm_Render_Data);
+    wrm_render_Data *prev = NULL;
+    wrm_render_Data *curr = wrm_Stack_AT(wrm_tbd, wrm_render_Data, 0);
     u32 count = 0;
     u32 mode = 0;
     bool indexed = false;
 
-    if(wrm_debug_frame) {
-        printf("\nFRAME DRAW DATA:\n\n3D PASS (%zu model%s to be drawn):\n", wrm_tbd.len, wrm_tbd.len == 1 ? "" : "s");
+    if(wrm_render_debug_frame) {
+        printf("\nFRAME DRAW DATA:\n\nMAIN (3D) PASS (%zu model%s to be drawn):\n", wrm_tbd.len, wrm_tbd.len == 1 ? "" : "s");
     }
 
     
     // render all the models to backbuffer
     for(int i = 0; i < wrm_tbd.len; i++) {
-        if(wrm_debug_frame) wrm_render_printModelData(curr->src_model);
+        if(wrm_render_debug_frame) wrm_render_printModelData(curr->src_model);
         wrm_render_setGLStateAndDraw(curr, prev, view, persp, &count, &mode, &indexed);
 
         prev = curr;
         curr++;
     }
+}
 
-    // space for future post-processing effects
-
-    // UI rendering pass
-    wrm_render_prepareModels(true);
-
-    // draw regardless of camera orientation
-    glm_mat4_identity(view);
-    // use orthographic projection
-    glm_ortho(0.0f, wrm_window_width, 0.0f, wrm_window_height, 0.0f, 1.0f, persp);
-    glDisable(GL_DEPTH_TEST);
-
-    prev = NULL;
-    curr = wrm_Stack_dataAs(wrm_tbd, wrm_Render_Data);
-    
-    if(wrm_debug_frame) {
-        printf("\n2D (UI) PASS (%zu model%s to be drawn):\n", wrm_tbd.len, wrm_tbd.len == 1 ? "" : "s");
-    }
-    
-    for(int i = 0; i < wrm_tbd.len; i++) {
-        if(wrm_debug_frame) wrm_render_printModelData(curr->src_model);
-        wrm_render_setGLStateAndDraw(curr, prev, view, persp, &count, &mode, &indexed);
-
-        prev = curr;
-        curr++;
-    }
-
-    if(wrm_debug_frame) wrm_debug_frame = false;
-
+wrm_render_present()
+{
     // swap the buffers to present the completed frame
+    if(wrm_render_debug_frame) wrm_render_debug_frame = false;
     SDL_GL_SwapWindow(wrm_window);
 }
 
@@ -268,7 +258,7 @@ void wrm_render_onWindowResize(void)
 
 void wrm_render_printDebugData(void)
 {
-    wrm_debug_frame = true;
+    wrm_render_debug_frame = true;
     printf("DEBUG: Render:\n\nINTERNAL DATA\n");
 
     printf("\nShaders: %zu total (memory for %zu):\n", wrm_shaders.used, wrm_shaders.cap);
@@ -396,7 +386,7 @@ static void wrm_render_initLists(void)
     wrm_Pool_init(&wrm_meshes, WRM_RENDER_POOL_INITIAL_CAPACITY, sizeof(wrm_Mesh), true);
     wrm_Pool_init(&wrm_models, WRM_RENDER_POOL_INITIAL_CAPACITY, sizeof(wrm_Model), true);
 
-    wrm_Stack_init(&wrm_tbd, WRM_RENDER_LIST_INITIAL_CAPACITY, sizeof(wrm_Render_Data), true);
+    wrm_Stack_init(&wrm_tbd, WRM_RENDER_LIST_INITIAL_CAPACITY, sizeof(wrm_render_Data), true);
 
     wrm_ui_count = 0;
 }
@@ -416,7 +406,7 @@ static void wrm_render_prepareModels(bool ui_pass)
     }
 
     if(wrm_tbd.len > 1 && !ui_pass) {
-        qsort(wrm_tbd.data, wrm_tbd.len, sizeof(wrm_Render_Data), wrm_render_compareRenderData);
+        qsort(wrm_tbd.data, wrm_tbd.len, sizeof(wrm_render_Data), wrm_render_compareRenderData);
     }
 }
 
@@ -424,7 +414,7 @@ static void wrm_render_addModelAndChildren(wrm_Handle m_handle, mat4 parent_tran
 {
     wrm_Model m = ((wrm_Model*)wrm_models.data)[m_handle];
 
-    wrm_Render_Data data; 
+    wrm_render_Data data; 
     wrm_render_packTransform(m.pos, m.rot, m.scale, data.transform);
     if(parent_transform) {
         glm_mat4_mul(parent_transform, data.transform, data.transform);
@@ -440,7 +430,7 @@ static void wrm_render_addModelAndChildren(wrm_Handle m_handle, mat4 parent_tran
             wrm_error("Render", "addModelAndChildren()", "failed to allocate space on draw stack!");
             return;
         }
-        *(wrm_Stack_dataAt(wrm_tbd, wrm_Render_Data, top_of_stack.val)) = data;
+        *(wrm_Stack_AT(wrm_tbd, wrm_render_Data, top_of_stack.val)) = data;
     }
     
     if(!(m.child_count && m.show_children)) { return; }
@@ -451,7 +441,7 @@ static void wrm_render_addModelAndChildren(wrm_Handle m_handle, mat4 parent_tran
     }
 }
 
-static void wrm_render_setGLStateAndDraw(wrm_Render_Data *curr, wrm_Render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed)
+static void wrm_render_setGLStateAndDraw(wrm_render_Data *curr, wrm_render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed)
 {
     if(!curr) return;
     wrm_Shader *s = (wrm_Shader*)wrm_shaders.data + curr->shader;
