@@ -47,23 +47,21 @@ bool wrm_Pool_shrink(wrm_Pool *p, size_t capacity)
 {
     if(capacity < p->used) return false;
 
-    size_t s = p->element_size;
-
     // allocate a new, smaller pool
     wrm_Pool new_pool;
-    wrm_Pool_init(&new_pool, capacity, s, p->auto_reserve);
+    wrm_Pool_init(&new_pool, capacity, p->element_size, p->auto_reserve);
 
     // copy all the old elements over
     for(u32 i = 0; i < p->cap; i++) {
         if(p->is_used[i]) {
-            void *src = wrm_Pool_dataAt(*p, u8, i * s); 
+            void *src = wrm_Pool_AT(*p, u8, i * p->element_size); 
             wrm_Option_Handle result = wrm_Pool_getSlot(&new_pool);
             if(!result.exists) {
                 wrm_error("Pool", "shrink()", "could not copy all data from the old to the new buffer!!");
                 return false;
             }
-            void *dest = wrm_Pool_dataAt(new_pool, u8, result.val);
-            memcpy(dest, src, s);
+            void *dest = wrm_Pool_AT(new_pool, u8, result.val);
+            memcpy(dest, src, p->element_size);
         }
     }
 
