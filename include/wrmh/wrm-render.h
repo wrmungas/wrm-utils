@@ -925,7 +925,7 @@ void wrm_render_printShaderData(wrm_Handle shader)
 {
     if(!wrm_render_exists(shader, WRM_RENDER_RESOURCE_SHADER, "printShaderData()", "")) return;
     
-    wrm_Shader *s = wrm_Pool_dataAs(wrm_shaders, wrm_Shader);
+    wrm_Shader *s = wrm_Pool_AS(wrm_shaders, wrm_Shader);
 
     u32 i = shader;
     printf(
@@ -942,7 +942,7 @@ void wrm_render_printShaderData(wrm_Handle shader)
 void wrm_render_printTextureData(wrm_Handle texture)
 {
     if(!wrm_render_exists(texture, WRM_RENDER_RESOURCE_TEXTURE, "printTextureData()", "")) return;
-    wrm_Texture *t = wrm_Pool_dataAs(wrm_textures, wrm_Texture);
+    wrm_Texture *t = wrm_Pool_AS(wrm_textures, wrm_Texture);
     u32 i = texture;
     printf(
         "[%u]: { gl_tex: %u, h: %u, w: %u }\n", 
@@ -957,7 +957,7 @@ void wrm_render_printMeshData(wrm_Handle mesh)
 {
     if(!wrm_render_exists(mesh, WRM_RENDER_RESOURCE_MESH, "printMeshData()", "")) return;
 
-    wrm_Mesh *m = wrm_Pool_dataAs(wrm_meshes, wrm_Mesh);
+    wrm_Mesh *m = wrm_Pool_AS(wrm_meshes, wrm_Mesh);
     u32 i = mesh;
     printf(
         "[%u]: { vao: %u, pos_vbo: %u, col_vbo: %u, uv_vbo: %u, ebo: %u, count: %zu, cw: %s, mode: %u }\n", 
@@ -977,7 +977,7 @@ void wrm_render_printModelData(wrm_Handle model)
 {
     if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, "printModelData()", "")) return;
 
-    wrm_Model *m = wrm_Pool_dataAs(wrm_meshes, wrm_Model);
+    wrm_Model *m = wrm_Pool_AS(wrm_meshes, wrm_Model);
     u32 i = model;
     printf(
         "[%u]: { \n"
@@ -1256,7 +1256,7 @@ wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle 
 
     // do some fun pointer arithmetic to get the allocated model
 
-    wrm_Model* model = wrm_Pool_dataAs(wrm_models, wrm_Model) + result.val;
+    wrm_Model* model = wrm_Pool_AS(wrm_models, wrm_Model) + result.val;
 
 
     // explicitly set up parent / children
@@ -1350,9 +1350,9 @@ void wrm_render_updateModelShader(wrm_Handle model, wrm_Handle shader)
         return;
     }
 
-    wrm_Model* mod = wrm_Pool_dataAs(wrm_models, wrm_Model) + model;
-    wrm_Shader sh = wrm_Pool_dataAs(wrm_shaders, wrm_Shader)[shader];
-    wrm_Mesh mesh = wrm_Pool_dataAs(wrm_meshes, wrm_Mesh)[mod->mesh];
+    wrm_Model* mod = wrm_Pool_AS(wrm_models, wrm_Model) + model;
+    wrm_Shader sh = wrm_Pool_AS(wrm_shaders, wrm_Shader)[shader];
+    wrm_Mesh mesh = wrm_Pool_AS(wrm_meshes, wrm_Mesh)[mod->mesh];
 
     // ensure the shader and mesh are compatible
     if( (sh.needs_col && !mesh.col_vbo) || (sh.needs_tex && !mesh.uv_vbo)) {
@@ -1383,7 +1383,7 @@ void wrm_render_addChildModel(wrm_Handle parent, wrm_Handle child)
         return;
     }
 
-    wrm_Model *m = wrm_Pool_dataAs(wrm_models, wrm_Model);
+    wrm_Model *m = wrm_Pool_AS(wrm_models, wrm_Model);
 
     if(m[parent].child_count == WRM_MODEL_CHILD_LIMIT) {
         if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot add another child to model [%u] (limit reached!)\n", parent); }
@@ -1414,7 +1414,7 @@ void wrm_render_removeChildModel(wrm_Handle parent, wrm_Handle child)
         return;
     }
 
-    wrm_Model *m = wrm_Pool_dataAs(wrm_models, wrm_Model);
+    wrm_Model *m = wrm_Pool_AS(wrm_models, wrm_Model);
 
     if(m[parent].child_count == 0) {
         if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot remove child from model [%u] (has no children!)\n", parent); }
@@ -1682,7 +1682,7 @@ internal inline void wrm_render_prepareModels(bool ui_pass)
     // clear the list
     wrm_models_tbd.len = 0;
 
-    wrm_Model *models = wrm_Pool_dataAs(wrm_models, wrm_Model);
+    wrm_Model *models = wrm_Pool_AS(wrm_models, wrm_Model);
 
     // ensure lists have enough capacity to hold all models
     if(wrm_models_tbd.cap < required_capacity) {

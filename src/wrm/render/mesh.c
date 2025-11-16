@@ -168,8 +168,9 @@ const wrm_Mesh_Data default_meshes_textured_cube = {
 wrm_Option_Handle wrm_render_createMesh(const wrm_Mesh_Data *data)
 {
     if(!data) { return OPTION_NONE(Handle); }
+    
     wrm_Option_Handle result = wrm_Pool_getSlot(&wrm_meshes);
-    wrm_Mesh *mesh = wrm_Pool_dataAt(wrm_meshes, wrm_Mesh, result.val);
+    wrm_Mesh *mesh = wrm_Pool_AT(wrm_meshes, wrm_Mesh, result.val);
     *mesh = (wrm_Mesh){
         .format = data->format,
         .vao = 0,
@@ -189,17 +190,28 @@ wrm_Option_Handle wrm_render_createMesh(const wrm_Mesh_Data *data)
     glGenVertexArrays(1, &mesh->vao);
     glBindVertexArray(mesh->vao);
 
-    if(mesh->format.pos) {
-        glGenBuffers(1, &mesh->pos_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh->pos_vbo);
-        glBufferData(GL_ARRAY_BUFFER, data->vtx_cnt * mesh->format.per_pos * sizeof(float), data->positions, gl_draw);
-
-        vtx_attrib = WRM_SHADER_ATTRIB_POS_LOC;
-        glVertexAttribPointer(vtx_attrib, mesh->format.per_pos, GL_FLOAT, GL_FALSE, mesh->format.per_pos * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(vtx_attrib);
+    // always create position vbo
+    if(!data->positions) { 
+        wrm_error("Render", "createMesh()", "failed to create mesh - needs position data");
+        wrm_render_deleteMesh(result.val);
+        return OPTION_NONE(Handle); 
     }
+
+    glGenBuffers(1, &mesh->pos_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->pos_vbo);
+    glBufferData(GL_ARRAY_BUFFER, data->vtx_cnt * mesh->format.per_pos * sizeof(float), data->positions, gl_draw);
+
+    vtx_attrib = WRM_SHADER_ATTRIB_POS_LOC;
+    glVertexAttribPointer(vtx_attrib, mesh->format.per_pos, GL_FLOAT, GL_FALSE, mesh->format.per_pos * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(vtx_attrib);
+    
     
     if(mesh->format.col) {
+        if(!data->colors) { 
+            wrm_error("Render", "createMesh()", "failed to create mesh - needs color data");
+            wrm_render_deleteMesh(result.val);
+            return OPTION_NONE(Handle);
+        }
         glGenBuffers(1, &mesh->col_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, mesh->col_vbo);
         glBufferData(GL_ARRAY_BUFFER, data->vtx_cnt * floats_per_col * sizeof(float), data->colors, gl_draw);
@@ -210,6 +222,11 @@ wrm_Option_Handle wrm_render_createMesh(const wrm_Mesh_Data *data)
     }
     
     if(mesh->format.tex) {
+        if(!data->colors) { 
+            wrm_error("Render", "createMesh()", "failed to create mesh - needs texture data");
+            wrm_render_deleteMesh(result.val);
+            return OPTION_NONE(Handle);
+        }
         glGenBuffers(1, &mesh->uv_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, mesh->uv_vbo);
         glBufferData(GL_ARRAY_BUFFER, data->vtx_cnt * floats_per_uv * sizeof(float), data->uvs, gl_draw);
@@ -245,20 +262,29 @@ void wrm_render_printMeshData(wrm_Handle mesh)
 {
     if(!wrm_render_exists(mesh, WRM_RENDER_RESOURCE_MESH, "printMeshData()", "")) return;
 
-    wrm_Mesh *m = wrm_Pool_dataAs(wrm_meshes, wrm_Mesh);
-    u32 i = mesh;
+    wrm_Mesh *m = wrm_Pool_AT(wrm_meshes, wrm_Mesh, mesh);
     printf(
         "[%u]: { vao: %u, pos_vbo: %u, col_vbo: %u, uv_vbo: %u, ebo: %u, count: %zu, cw: %s, mode: %u }\n", 
-        i,
-        m[i].vao,
-        m[i].pos_vbo,
-        m[i].col_vbo, 
-        m[i].uv_vbo,
-        m[i].ebo,
-        m[i].count,
-        m[i].cw ? "true" : "false",
-        m[i].mode
+        mesh,
+        m->vao,
+        m->pos_vbo,
+        m->col_vbo, 
+        m->uv_vbo,
+        m->ebo,
+        m->count,
+        m->cw ? "true" : "false",
+        m->mode
     );
 }
 
-// module internal
+void wrm_render_deleteMesh(wrm_Handle mesh)
+{
+    if(!wrm_render_exists(mesh, WRM_RENDER_RESOURCE_MESH, "deleteMesh()", "")) return;
+
+    wrm_Mesh *m = wrm_Pool_AT(wrm_meshes, wrm_Mesh, mesh);
+
+    // silently ignores any of these that are 0
+    glDeleteBuffers(4, (GLint[]){ m->pos_vbo, m->col_vbo, m->uv_vbo, m->ebo});
+    glDeleteVertexArrays(1, &m->vao);
+    wrm_Pool_freeSlot(&wrm_meshes, mesh);
+}

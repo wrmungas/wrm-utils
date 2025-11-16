@@ -33,7 +33,7 @@ wrm_Option_Handle wrm_render_createTexture(const wrm_Texture_Data *data)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    wrm_Texture *t = wrm_Pool_dataAt(wrm_textures, wrm_Texture, result.val);
+    wrm_Texture *t = wrm_Pool_AT(wrm_textures, wrm_Texture, result.val);
     *t = (wrm_Texture){
         .gl_tex = texture,
         .w = data->width,
@@ -67,27 +67,38 @@ bool wrm_render_updateTexture(wrm_Handle texture, wrm_Texture_Data *data, u32 x,
         return false;
     }
 
-    wrm_Texture t = ((wrm_Texture*)wrm_textures.data)[texture];
+    wrm_Texture *t = wrm_Pool_AT(wrm_textures, wrm_Texture, texture);
 
     GLuint gl_format = (data->channels == 1) ? GL_ALPHA : GL_RGBA;
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, t.gl_tex);
+    glBindTexture(GL_TEXTURE_2D, t->gl_tex);
     glTexSubImage2D(GL_TEXTURE, 0, x, y, data->width, data->height, gl_format, GL_UNSIGNED_BYTE, data->pixels);
+    t->w = data->width;
+    t->h = data->height;
     return true;
 }
 
 void wrm_render_printTextureData(wrm_Handle texture)
 {
     if(!wrm_render_exists(texture, WRM_RENDER_RESOURCE_TEXTURE, "printTextureData()", "")) return;
-    wrm_Texture *t = wrm_Pool_dataAs(wrm_textures, wrm_Texture);
-    u32 i = texture;
+    wrm_Texture *t = wrm_Pool_AT(wrm_textures, wrm_Texture, texture);
     printf(
         "[%u]: { gl_tex: %u, h: %u, w: %u }\n", 
-        i,
-        t[i].gl_tex,
-        t[i].h,
-        t[i].w
+        texture,
+        t->gl_tex,
+        t->h,
+        t->w
     );
+}
+
+void wrm_render_deleteTexture(wrm_Handle texture)
+{
+    if(!wrm_render_exists(texture, WRM_RENDER_RESOURCE_TEXTURE, "deleteTexture()", "")) return;
+
+    wrm_Texture *t = wrm_Pool_AT(wrm_textures, wrm_Texture, texture);
+
+    glDeleteTextures(1, t->gl_tex);
+    wrm_Pool_freeSlot(&wrm_textures, texture);
 }
 
 // module internal

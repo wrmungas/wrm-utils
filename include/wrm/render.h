@@ -117,8 +117,7 @@ struct wrm_Window_Data {
 struct wrm_render_Format {
     bool col;
     bool tex;
-    bool pos;
-    u8 per_pos; // values per position, e.g. 3 for (x,y,z) coordinates, 2 for (x,y)
+    u8 per_pos; // values per position, e.g. 3 for (x,y,z) coordinates, 2 for (x,y): shaders ALWAYS take position, and meshes MUST provide it
     // to add: normals, material properties, etc
 };
 
@@ -202,6 +201,13 @@ void wrm_render_setUIShown(bool show_ui);
 wrm_Option_Handle wrm_render_createShader(const char *vert, const char *frag, wrm_render_Format format);
 /* For debugging; prints a shader's data to `stdout` */
 void wrm_render_printShaderData(wrm_Handle shader);
+/* 
+Removes a shader and its associated resources 
+Called internally when shader creation fails and by wrm_render_quit() to free all render resources
+As long as wrm_render_quit() is called this need not be
+*/
+void wrm_render_deleteShader(wrm_Handle shader);
+
 // texture-related
 
 /* Creates a texture */
@@ -210,6 +216,12 @@ wrm_Option_Handle wrm_render_createTexture(const wrm_Texture_Data *data);
 bool wrm_render_updateTexture(wrm_Handle texture, wrm_Texture_Data *data, u32 x, u32 y);
 /* For debugging; prints a stexture's data to `stdout` */
 void wrm_render_printTextureData(wrm_Handle texture);
+/* 
+Removes a texture and its associated resources 
+Called internally when texture creation fails and by wrm_render_quit() to free all render resources
+As long as wrm_render_quit() is called this need not be
+*/
+void wrm_render_deleteTexture(wrm_Handle texture);
 
 // mesh-related
 
@@ -221,6 +233,12 @@ wrm_Option_Handle wrm_render_cloneMesh(wrm_Handle mesh);
 bool wrm_render_updateMesh(wrm_Handle mesh, const wrm_Mesh_Data *data);
 /* For debugging; prints a mesh's data to `stdout` */
 void wrm_render_printMeshData(wrm_Handle mesh);
+/* 
+Removes a mesh and its associated resources 
+Called internally when mesh creation fails and by wrm_render_quit() to free all render resources
+As long as wrm_render_quit() is called this need not be
+*/
+void wrm_render_deleteMesh(wrm_Handle mesh);
 
 // model-related
 
@@ -246,6 +264,12 @@ wrm_Option_Handle wrm_render_createTestTriangle(void);
 wrm_Option_Handle wrm_render_createTestCube(void);
 /* For debugging; prints a model's data to `stdout` */
 void wrm_render_printModelData(wrm_Handle model);
+/* 
+Removes a model (BUT NOT its resources - these may be in use by other models)
+Called internally when model creation fails and by wrm_render_quit() to free all render resources
+As long as wrm_render_quit() is called this need not be
+*/
+void wrm_render_deleteModel(wrm_Handle model);
 
 // camera-related
 

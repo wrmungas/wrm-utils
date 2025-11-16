@@ -45,7 +45,7 @@ wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle 
         return OPTION_NONE(Handle);
     }
 
-    wrm_Model* model = wrm_Pool_dataAt(wrm_models, wrm_Model, result.val);
+    wrm_Model* model = wrm_Pool_AS(wrm_models, wrm_Model, result.val);
 
     // explicitly zero-initialize children;
     model->child_count = 0;
@@ -75,7 +75,7 @@ bool wrm_render_setModelTransform(wrm_Handle model, const vec3 pos, const vec3 r
     if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, "updateModelTransform()", "")) {
         return false;
     }
-    wrm_Model *data = wrm_Pool_dataAt(wrm_models, wrm_Model, model);
+    wrm_Model *data = wrm_Pool_AS(wrm_models, wrm_Model, model);
 
     if(pos) wrm_vec3_copy(pos, data->pos);
     if(rot) wrm_vec3_copy(rot, data->rot);
@@ -89,7 +89,7 @@ bool wrm_render_addModelTransform(wrm_Handle model, const vec3 pos, const vec3 r
     if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, "updateModelTransform()", "")) {
         return false;
     }
-    wrm_Model *data = wrm_Pool_dataAt(wrm_models, wrm_Model, model);
+    wrm_Model *data = wrm_Pool_AS(wrm_models, wrm_Model, model);
 
     if(pos) wrm_vec3_add(pos, data->pos);
     if(rot) wrm_vec3_add(rot, data->rot);
@@ -102,7 +102,7 @@ bool wrm_render_setModelMesh(wrm_Handle model, wrm_Handle mesh)
 {
     const char *caller = "updateModelMesh()";
     if(wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, caller, "(model)") && wrm_render_exists(mesh, WRM_RENDER_RESOURCE_MESH, caller, "(mesh)")) {
-        wrm_Pool_dataAt(wrm_models, wrm_Model, model)->mesh = mesh;
+        wrm_Pool_AS(wrm_models, wrm_Model, model)->mesh = mesh;
         return true;
     }
     return false;
@@ -112,7 +112,7 @@ bool wrm_render_setModelTexture(wrm_Handle model, wrm_Handle texture)
 {
     const char *caller = "updateModelTexture()";
     if(wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, caller, "(model)") && wrm_render_exists(texture, WRM_RENDER_RESOURCE_TEXTURE, caller, "(texture)")) {
-        wrm_Pool_dataAt(wrm_models, wrm_Model, model)->texture = texture;
+        wrm_Pool_AS(wrm_models, wrm_Model, model)->texture = texture;
         return true;
     }
     return false;
@@ -125,12 +125,14 @@ bool wrm_render_setModelShader(wrm_Handle model, wrm_Handle shader)
         return false;
     }
 
-    wrm_Model *mod = wrm_Pool_dataAt(wrm_models, wrm_Model, model);
-    wrm_Shader *sh = wrm_Pool_dataAt(wrm_shaders, wrm_Shader, shader);
-    wrm_Mesh *mesh = wrm_Pool_dataAt(wrm_meshes, wrm_Mesh, mod->mesh);
+    wrm_Model *mod = wrm_Pool_AS(wrm_models, wrm_Model, model);
+    wrm_Shader *s = wrm_Pool_AS(wrm_shaders, wrm_Shader, shader);
+    wrm_Mesh *mesh = wrm_Pool_AS(wrm_meshes, wrm_Mesh, mod->mesh);
 
     // ensure the shader and mesh are compatible
-    if( (sh->needs_col && !mesh->col_vbo) || (sh->needs_tex && !mesh->uv_vbo)) {
+    wrm_render_Format sf = s->format;
+    wrm_render_Format mf = mesh->format;
+    if( (sf.col != mf.col) || (sf.per_pos != mf.per_pos) || (sf.tex != mf.tex)) {
         if(wrm_render_settings.errors) wrm_error("Render", caller, "Mesh [%u] does not meet shader [%u] data requirements\n", mod->mesh, shader);
         return false;
     }
@@ -161,7 +163,7 @@ bool wrm_render_addChild(wrm_Handle parent, wrm_Handle child)
         return false;
     }
 
-    wrm_Model *m = wrm_Pool_dataAs(wrm_models, wrm_Model);
+    wrm_Model *m = wrm_Pool_AS(wrm_models, wrm_Model);
 
     if(m[parent].child_count == WRM_MODEL_CHILD_LIMIT) {
         if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot add another child to model [%u] (limit reached!)\n", parent); }
@@ -193,7 +195,7 @@ bool wrm_render_removeChild(wrm_Handle parent, wrm_Handle child)
         return false;
     }
 
-    wrm_Model *m = wrm_Pool_dataAs(wrm_models, wrm_Model);
+    wrm_Model *m = wrm_Pool_AS(wrm_models, wrm_Model);
 
     if(m[parent].child_count == 0) {
         if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot remove child from model [%u] (has no children!)\n", parent); }
@@ -237,7 +239,7 @@ void wrm_render_printModelData(wrm_Handle model)
 {
     if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, "printModelData()", "")) return;
 
-    wrm_Model m = wrm_Pool_dataAs(wrm_models, wrm_Model)[model];
+    wrm_Model m = wrm_Pool_AS(wrm_models, wrm_Model)[model];
     printf(
         "[%u]: { \n"
         "   shader: %u, texture: %u, mesh: %u, is_ui: %s, is_visible: %s,\n"
@@ -262,6 +264,12 @@ void wrm_render_printModelData(wrm_Handle model)
         printf("%u, ", m.children[j]);
     }
     printf("]   }\n");
+}
+
+void wrm_render_deleteModel(wrm_Handle model)
+{
+    if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, "deleteModel()", "")) return;
+    wrm_Pool_freeSlot(&wrm_models, model);
 }
 
 // module internal

@@ -406,7 +406,7 @@ static void wrm_render_prepareModels(bool ui_pass)
     // clear the list
     wrm_Stack_reset(&wrm_tbd, 0);
 
-    wrm_Model *models = wrm_Pool_dataAs(wrm_models, wrm_Model);
+    wrm_Model *models = wrm_Pool_AS(wrm_models, wrm_Model);
 
     // skip model 0 (implicit parent)
     for(u32 i = 1; i < wrm_models.cap; i++) {
