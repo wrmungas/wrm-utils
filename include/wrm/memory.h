@@ -103,9 +103,9 @@ void wrm_Pool_delete(wrm_Pool *p);
 /* Type-generic pool accessor macros for `pool` (NOT a pointer) and type name `t` */ 
 
 // `pool` must NOT be a pointer; guard any raw access with `wrm_Pool_isValid()`
-#define wrm_Pool_dataAs(pool, t) ((t*)((pool).data))
+#define wrm_Pool_AS(pool, t) ((t*)((pool).data))
 // `pool` must NOT be a pointer; guard any raw access with `wrm_Pool_isValid()`; this gives a t* to the instance at the desired index
-#define wrm_Pool_dataAt(pool, t, idx) (wrm_Pool_dataAs(pool, t) + idx)
+#define wrm_Pool_AT(pool, t, idx) (wrm_Pool_AS(pool, t) + idx)
 
 // stack
 
@@ -142,9 +142,9 @@ void wrm_Stack_delete(wrm_Stack *p);
 
 /* Type-generic pool accessor macros for `pool` (NOT a pointer) and type name `t` */ 
 
-#define wrm_Stack_dataAs(stack, t) ((t*)((stack).data))
+#define wrm_Stack_AS(stack, t) ((t*)((stack).data))
 // check that `idx` < `stack.len` first!!
-#define wrm_Stack_dataAt(stack, t, idx) (wrm_Stack_dataAs(stack, t) + idx)
+#define wrm_Stack_AT(stack, t, idx) (wrm_Stack_AS(stack, t) + idx)
 
 
 #endif
