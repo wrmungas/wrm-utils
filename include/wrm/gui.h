@@ -28,6 +28,12 @@ REQUIREMENTS:
 #include "wrm/input.h"
 
 /*
+Constants
+*/
+
+enum wrm_gui_Pos_Options { WRM_LEFT = 0, WRM_RIGHT, WRM_CENTER, WRM_TOP, WRM_BOTTOM };
+
+/*
 Type declarations
 */
 
@@ -36,29 +42,35 @@ typedef union wrm_gui_Element wrm_gui_Element;
 
 typedef struct wrm_gui_Alignment wrm_gui_Alignment;
 
-typedef struct wrm_gui_Header wrm_gui_Header;
+typedef struct wrm_gui_Properties wrm_gui_Properties;
 
 /* Represents a colored or textured pane as a background for other elements */
 typedef struct wrm_Pane wrm_Pane;
 /* Represents a box of text; should probably have a semi- or fully transparent parent pane */
 typedef struct wrm_Text wrm_Text;
 
+typedef struct wrm_Image wrm_Image;
+
 
 /*
 Type definitions
 */
 
+// implicitly relative to top left; all values in pixels
 struct wrm_gui_Alignment {
-    float x; // x position 
-    float y; // y position
-    float width; // width in pixels
-    float height; // height in pixels
-    enum {TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT, CENTER } position;
-
+    i32 x;
+    i32 y;
+    u32 width; // width in pixels
+    u32 height; // height in pixels
+    // to add: which point of the element is this referring to, and where on screen is it relative to
+    u8 x_is; // which point on the element x is
+    u8 x_from; // which point on screen x is relative to
+    u8 y_is; // which point on the element y is
+    u8 y_from; // which point on screen y is relative to
 };
 
-struct wrm_gui_Header {
-    enum { WRM_GUI_TEXT, WRM_GUI_PANE} type;
+struct wrm_gui_Properties {
+    enum { WRM_GUI_TEXT, WRM_GUI_PANE, WRM_GUI_IMAGE} type;
     wrm_gui_Alignment alignment;
     u32 model;
     u32 parent;
@@ -66,24 +78,33 @@ struct wrm_gui_Header {
 };
 
 struct wrm_Text {
-    wrm_gui_Header properties;
+    wrm_gui_Properties properties;
     wrm_Handle font;
     u32 text_len;
+    wrm_RGBA text_color;
+    u32 spacing; // pixels between each line
     const char *text;
 };
 
 struct wrm_Pane {
-    wrm_gui_Header properties;
+    wrm_gui_Properties properties;
+    wrm_RGBA color;
     u32 children;
     u8 child_count;
     bool show_children;
 };
 
+struct wrm_Image {
+    wrm_gui_Properties properties;
+    wrm_Handle image_texture;
+};
+
 
 union wrm_gui_Element {
-    wrm_gui_Header properties;
+    wrm_gui_Properties properties;
     wrm_Text text;
     wrm_Pane pane;
+    wrm_Image image;
 };
 
 
@@ -117,18 +138,30 @@ void wrm_gui_quit(void);
 /* Load a font from a given font file */
 wrm_Option_Handle wrm_gui_loadFont(const char *path);
 
+// all elements
+bool wrm_gui_setAlignment(wrm_Handle element, wrm_gui_Alignment alignment);
+
 // text box
 
 /* Create a text box gui element */
-wrm_Option_Handle wrm_gui_createText(wrm_Text *t);
-/* Update a text box gui element */
-bool wrm_gui_updateText(wrm_Handle text, wrm_Text *t);
+wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle font, wrm_RGBA text_color, const char *text, u32 spacing);
  
 // pane
 
 /* Create a pane element */
-wrm_Option_Handle wrm_gui_createPane(wrm_Pane *p, u32 x, u32 y, u32 width, u32 height, wrm_Handle parent);
+wrm_Option_Handle wrm_gui_createPane(wrm_gui_Properties properties);
 
+// image
 
+/* Create an image element - will forcibly overwrite the `type` to WRM_GUI_IMAGE in `properties` regardless of what is passed in */
+wrm_Option_Handle wrm_gui_createImage(wrm_gui_Properties properties, wrm_Handle texture);
+
+// debug
+
+/* Print out the data for a given alignment */
+void wrm_gui_debugAlignment(wrm_gui_Alignment a);
+void wrm_gui_debugElement(wrm_Handle element);
+/* Create a test image */
+wrm_Option_Handle wrm_gui_createTestImage(void);
 
 #endif
