@@ -3,9 +3,9 @@
 
 in vec4 col;
 
-out vec4 FragColor;
+out vec4 f_col;
 
 void main()
 {
-    FragColor = col;
+    f_col = col;
 }
