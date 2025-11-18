@@ -81,7 +81,7 @@ Helpers (internal to just this file)
 // initializes the internal renderer resource pools
 static void wrm_render_initLists(void);
 // sets the GL state before a draw call
-static void wrm_render_setGLStateAndDraw(wrm_render_Data *curr, wrm_render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed);
+static void wrm_render_drawModel(wrm_render_Data *curr, wrm_render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed);
 // pack position, rotation, and scale into a transform matrix
 static void wrm_render_packTransform(vec3 pos, vec3 rot, vec3 scale, mat4 transform);
 // creates a list from the pool of models, sorted by GL state changes
@@ -230,14 +230,14 @@ void wrm_render_draw(void)
     // render all the models to backbuffer
     for(int i = 0; i < wrm_tbd.len; i++) {
         if(wrm_render_debug_frame) wrm_render_printModelData(curr->src_model);
-        wrm_render_setGLStateAndDraw(curr, prev, view, persp, &count, &mode, &indexed);
+        wrm_render_drawModel(curr, prev, view, persp, &count, &mode, &indexed);
 
         prev = curr;
         curr++;
     }
 }
 
-wrm_render_present()
+void wrm_render_present(void)
 {
     // swap the buffers to present the completed frame
     if(wrm_render_debug_frame) wrm_render_debug_frame = false;
@@ -296,9 +296,6 @@ void wrm_render_setUIShown(bool show_ui)
 {
     wrm_show_ui = show_ui;
 }
-
-// force compiler to emit a symbol
-void wrm_vec3_copy(const vec3 src, vec3 dest);
 
 void wrm_render_getOrientation(const vec3 rot, vec3 forward, vec3 up, vec3 right)
 {
@@ -441,7 +438,7 @@ static void wrm_render_addModelAndChildren(wrm_Handle m_handle, mat4 parent_tran
     }
 }
 
-static void wrm_render_setGLStateAndDraw(wrm_render_Data *curr, wrm_render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed)
+static void wrm_render_drawModel(wrm_render_Data *curr, wrm_render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed)
 {
     if(!curr) return;
     wrm_Shader *s = (wrm_Shader*)wrm_shaders.data + curr->shader;

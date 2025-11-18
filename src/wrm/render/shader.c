@@ -9,8 +9,6 @@ const u32 WRM_SHADER_ATTRIB_UV_LOC = 2;
 const char *WRM_SHADER_DEFAULT_COL_NAME = "default-color";
 const char *WRM_SHADER_DEFAULT_TEX_NAME = "default-texture";
 
-static wrm_Option_Handle wrm_render_createDefaultShader(const char *shaders_dir, const char *name, wrm_render_Format format);
-
 wrm_Default_Shaders wrm_default_shaders;
 
 // user-visible
@@ -58,7 +56,7 @@ wrm_Option_Handle wrm_render_createShader(const char *vert_text, const char *fra
 
             char *log_msg = malloc(log_len * sizeof(char));
             glGetProgramInfoLog(program, log_len, NULL, log_msg);
-            fprintf(stderr, "ERROR: Render: failed to link shaders, GL error: %s\n", log_msg);
+            fprintf(stderr, "ERROR: Render: failed to link shaders, GL error: %s", log_msg);
             free(log_msg);
         }
 
@@ -164,7 +162,7 @@ bool wrm_render_createDefaultShaders(const char *shaders_dir)
         .per_pos = 3
     };
 
-    wrm_Option_Handle result = wrm_render_createDefaultShader(shaders_dir, WRM_SHADER_DEFAULT_COL_NAME, col_format);
+    wrm_Option_Handle result = wrm_render_loadAndCreateShader(shaders_dir, WRM_SHADER_DEFAULT_COL_NAME, col_format);
     if(!result.exists) {
         return false;
     }
@@ -177,13 +175,40 @@ bool wrm_render_createDefaultShaders(const char *shaders_dir)
         .per_pos = 3
     };
 
-    result = wrm_render_createDefaultShader(shaders_dir, WRM_SHADER_DEFAULT_TEX_NAME, tex_format);
+    result = wrm_render_loadAndCreateShader(shaders_dir, WRM_SHADER_DEFAULT_TEX_NAME, tex_format);
     if(!result.exists) {
         return false;
     }
     wrm_default_shaders.texture = result.val;
 
     return true;
+}
+
+wrm_Option_Handle wrm_render_loadAndCreateShader(const char *dir, const char *name, wrm_render_Format format)
+{
+    size_t dir_len = strlen(dir);
+    size_t name_len = strlen(name);
+
+    // include slash and .vert
+    size_t len = dir_len + 1 + name_len + 5;
+    // include null terminator
+    char *vert_path = malloc(len + 1);
+    char *frag_path = malloc(len + 1);
+
+    sprintf(vert_path, "%s/%s.vert", dir, name);
+    sprintf(frag_path, "%s/%s.frag", dir, name);
+
+    char *vert = wrm_readFile(vert_path);
+    char *frag = wrm_readFile(frag_path);
+
+    wrm_Option_Handle result; 
+    result = wrm_render_createShader(vert, frag, format);
+    free(vert);
+    free(frag);
+    free(vert_path);
+    free(frag_path);
+    
+    return result;
 }
 
 void wrm_render_deleteShader(wrm_Handle shader)
@@ -199,33 +224,5 @@ void wrm_render_deleteShader(wrm_Handle shader)
     wrm_Pool_freeSlot(&wrm_shaders, shader);
 }
 
-// file internal
 
-static wrm_Option_Handle wrm_render_createDefaultShader(const char *shaders_dir, const char *name, wrm_render_Format format)
-{
-    size_t dir_len = strlen(shaders_dir);
-    size_t name_len = strlen(name);
 
-    // include slash and .vert
-    size_t len = dir_len + 1 + name_len + 5;
-    // include null terminator
-    char *vert_path = malloc(len + 1);
-    char *frag_path = malloc(len + 1);
-
-    sprintf(vert_path, "%s/%s.vert", shaders_dir, name);
-    sprintf(frag_path, "%s/%s.frag", shaders_dir, name);
-
-    printf("vert: %s frag: %s\n", vert_path, frag_path);
-
-    char *vert = wrm_readFile(vert_path);
-    char *frag = wrm_readFile(frag_path);
-
-    wrm_Option_Handle result; 
-    result = wrm_render_createShader(vert, frag, format);
-    free(vert);
-    free(frag);
-    free(vert_path);
-    free(frag_path);
-    
-    return result;
-}

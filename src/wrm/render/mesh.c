@@ -2,7 +2,6 @@
 
 // mesh constants/globals
 
-const static u8 floats_per_pos = 3;
 const static u8 floats_per_col = 4;
 const static u8 floats_per_uv = 2;
 
@@ -10,6 +9,11 @@ const static u8 floats_per_uv = 2;
 
 // equilateral triangle centered at origin facing +x; colors: top = red, lower-right = green, lower-left = blue
 const wrm_Mesh_Data default_meshes_colored_triangle = {
+    .format = {
+        .col = true,
+        .per_pos = 3,
+        .tex = false,
+    },
     .positions = (float[]) {
         0.0f, 0.577530f, 0.0f,
         0.0f,-0.288675f,-0.5f,
@@ -32,6 +36,11 @@ const wrm_Mesh_Data default_meshes_colored_triangle = {
 
 // unit cube centered at zero, textured
 const wrm_Mesh_Data default_meshes_colored_cube = {
+    .format = {
+        .col = true,
+        .per_pos = 3,
+        .tex = false,
+    },
     .positions = (float[]) {
         -0.5f,  0.5f,  0.5f,
          0.5f,  0.5f,  0.5f,
@@ -68,6 +77,11 @@ const wrm_Mesh_Data default_meshes_colored_cube = {
 };
 
 const wrm_Mesh_Data default_meshes_textured_cube = {
+    .format = {
+        .col = true,
+        .per_pos = 3,
+        .tex = true,
+    },
     .positions = (float[]) {
         -0.5f,  0.5f,  0.5f,
          0.5f,  0.5f,  0.5f,
@@ -183,8 +197,7 @@ wrm_Option_Handle wrm_render_createMesh(const wrm_Mesh_Data *data)
         .count = data->idx_cnt,
     };
 
-    GLuint vtx_attrib;
-    GLuint gl_draw = data->dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
+    GLenum gl_draw = data->dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
     
     glGenVertexArrays(1, &mesh->vao);
@@ -196,14 +209,10 @@ wrm_Option_Handle wrm_render_createMesh(const wrm_Mesh_Data *data)
         wrm_render_deleteMesh(result.val);
         return OPTION_NONE(Handle); 
     }
-
-    glGenBuffers(1, &mesh->pos_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->pos_vbo);
-    glBufferData(GL_ARRAY_BUFFER, data->vtx_cnt * mesh->format.per_pos * sizeof(float), data->positions, gl_draw);
-
-    vtx_attrib = WRM_SHADER_ATTRIB_POS_LOC;
-    glVertexAttribPointer(vtx_attrib, mesh->format.per_pos, GL_FLOAT, GL_FALSE, mesh->format.per_pos * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(vtx_attrib);
+    wrm_render_createVBO(
+        &mesh->pos_vbo, WRM_SHADER_ATTRIB_POS_LOC, data->vtx_cnt, 
+        mesh->format.per_pos, data->positions, gl_draw
+    );
     
     
     if(mesh->format.col) {
@@ -212,13 +221,11 @@ wrm_Option_Handle wrm_render_createMesh(const wrm_Mesh_Data *data)
             wrm_render_deleteMesh(result.val);
             return OPTION_NONE(Handle);
         }
-        glGenBuffers(1, &mesh->col_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh->col_vbo);
-        glBufferData(GL_ARRAY_BUFFER, data->vtx_cnt * floats_per_col * sizeof(float), data->colors, gl_draw);
-
-        vtx_attrib = WRM_SHADER_ATTRIB_COL_LOC;
-        glVertexAttribPointer(vtx_attrib, floats_per_col, GL_FLOAT, GL_FALSE, floats_per_col * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(vtx_attrib);
+        
+        wrm_render_createVBO(
+            &mesh->col_vbo, WRM_SHADER_ATTRIB_COL_LOC, data->vtx_cnt, 
+            floats_per_col, data->colors, gl_draw
+        );
     }
     
     if(mesh->format.tex) {
@@ -227,24 +234,30 @@ wrm_Option_Handle wrm_render_createMesh(const wrm_Mesh_Data *data)
             wrm_render_deleteMesh(result.val);
             return OPTION_NONE(Handle);
         }
-        glGenBuffers(1, &mesh->uv_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh->uv_vbo);
-        glBufferData(GL_ARRAY_BUFFER, data->vtx_cnt * floats_per_uv * sizeof(float), data->uvs, gl_draw);
-
-        vtx_attrib = WRM_SHADER_ATTRIB_UV_LOC;
-        glVertexAttribPointer(vtx_attrib, floats_per_uv, GL_FLOAT, GL_FALSE, floats_per_uv * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(vtx_attrib);
+        wrm_render_createVBO(
+            &mesh->uv_vbo, WRM_SHADER_ATTRIB_UV_LOC, data->vtx_cnt, 
+            floats_per_uv, data->uvs, gl_draw
+        );
     }
     
-    GLuint ebo = 0;
     if(data->indices) {
-        glGenBuffers(1, &ebo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glGenBuffers(1, &mesh->ebo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ebo);
         // handle indices for different drawing modes ?
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, data->idx_cnt * sizeof(u32), data->indices, gl_draw);
     }
 
     return result;
+}
+
+void wrm_render_createVBO(GLuint *vbo, u32 attr_loc, size_t num_entries, size_t values_per_entry, const void *data, GLenum usage)
+{
+    glGenBuffers(1, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+    glBufferData(GL_ARRAY_BUFFER, num_entries * values_per_entry * sizeof(float), data, usage);
+
+    glVertexAttribPointer(attr_loc, values_per_entry, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    glEnableVertexAttribArray(attr_loc);
 }
 
 wrm_Option_Handle wrm_render_cloneMesh(wrm_Handle mesh)
@@ -264,8 +277,14 @@ void wrm_render_printMeshData(wrm_Handle mesh)
 
     wrm_Mesh *m = wrm_Pool_AT(wrm_meshes, wrm_Mesh, mesh);
     printf(
-        "[%u]: { vao: %u, pos_vbo: %u, col_vbo: %u, uv_vbo: %u, ebo: %u, count: %zu, cw: %s, mode: %u }\n", 
+        "[%u]: {\n"
+        "  format: { tex: %s, col: %s, per_pos: %u },\n"
+        "  vao: %u, pos_vbo: %u, col_vbo: %u, uv_vbo: %u,\n"
+        "  ebo: %u, count: %zu, cw: %s, mode: %u }\n", 
         mesh,
+        m->format.tex ? "true" : "false", 
+        m->format.col ? "true" : "false",
+        m->format.per_pos,
         m->vao,
         m->pos_vbo,
         m->col_vbo, 
@@ -284,7 +303,7 @@ void wrm_render_deleteMesh(wrm_Handle mesh)
     wrm_Mesh *m = wrm_Pool_AT(wrm_meshes, wrm_Mesh, mesh);
 
     // silently ignores any of these that are 0
-    glDeleteBuffers(4, (GLint[]){ m->pos_vbo, m->col_vbo, m->uv_vbo, m->ebo});
+    glDeleteBuffers(4, (GLuint[]){ m->pos_vbo, m->col_vbo, m->uv_vbo, m->ebo});
     glDeleteVertexArrays(1, &m->vao);
     wrm_Pool_freeSlot(&wrm_meshes, mesh);
 }

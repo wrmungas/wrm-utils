@@ -1,6 +1,7 @@
 #include "wrm/common.h"
 #include "wrm/render.h"
 #include "wrm/memory.h"
+#include "wrm/linmath.h"
 #include "stb/stb_image.h"
 #include "glad/glad.h"
 
@@ -169,6 +170,8 @@ Module internal functions
 wrm_Option_GLuint wrm_render_compileShader(const char *shader_text, GLenum type);
 // creates a default shader for meshes with per-vertex colors, per-vertex uv's, and both
 bool wrm_render_createDefaultShaders(const char *shader_dir);
+// loads a shader .frag and .vert pair with the given name, from the given directory, with the given format
+wrm_Option_Handle wrm_render_loadAndCreateShader(const char *dir, const char *name, wrm_render_Format format);
 // creates a default pink-and-black error texture
 bool wrm_render_createErrorTexture(void);
 // checks whether resource handle `h` to a resource of type `t` is in use 
@@ -178,4 +181,11 @@ bool wrm_render_exists(wrm_Handle h, wrm_render_Resource_Type t, const char *cal
 wrm_Option_Handle wrm_render_getDefaultShader(wrm_Handle mesh);
 // gets the view matrix from the current camera orientation
 void wrm_render_getViewMatrix(mat4 view);
+/*
+creates a GL vertex buffer object (VBO)
+`attr_loc` is the `layout(location=<n>)` location in the vertex shader that this vbo holds data for
+`num_entries` is the total number of sets of data (e.g. position vectors, colors, etc)
+`values_per_entry` is how many (assumed to be float) values there are for each entry (2 for vec2, 3 for vec3, etc)
+*/
+void wrm_render_createVBO(GLuint *vbo, u32 attr_loc, size_t num_entries, size_t values_per_entry, const void *data, GLenum usage);
 

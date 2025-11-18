@@ -35,6 +35,7 @@ wrm_Option_Handle wrm_gui_loadFont(const char *path)
     int w = 0;
     int h = 0;
 
+    // iterate once over the characters to get the maximum width and height
     for(u8 i = 32; i < 128; i++) {
         if(FT_Load_Char(f->face, i, FT_LOAD_RENDER)) {
             fprintf(stderr, "Loading character %c failed!\n", i);
@@ -47,7 +48,7 @@ wrm_Option_Handle wrm_gui_loadFont(const char *path)
 
     // create a GL texture for the character atlas
     wrm_Texture_Data d = {
-        .channels = 4,
+        .channels = 1,
         .height = h,
         .width = w,
         .pixels = NULL
