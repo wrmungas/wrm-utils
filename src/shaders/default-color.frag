@@ -1,3 +1,4 @@
+// file: default-color.frag
 #version 330 core
 
 in vec4 col;
