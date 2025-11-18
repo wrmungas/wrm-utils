@@ -97,7 +97,7 @@ void wrm_render_deleteTexture(wrm_Handle texture)
 
     wrm_Texture *t = wrm_Pool_AT(wrm_textures, wrm_Texture, texture);
 
-    glDeleteTextures(1, t->gl_tex);
+    glDeleteTextures(1, &(t->gl_tex));
     wrm_Pool_freeSlot(&wrm_textures, texture);
 }
 
