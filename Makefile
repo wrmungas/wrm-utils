@@ -5,7 +5,7 @@ SRC_DIR = src
 BIN_DIR = bin
 TEST_DIR = test
 
-WRM_SUBDIRS = render menu memory
+WRM_SUBDIRS = render menu memory gui
 WRM_ALLDIRS = wrm $(patsubst %,wrm/%,$(WRM_SUBDIRS))
 SRC_SUBDIRS = glad stb $(WRM_ALLDIRS)
 SRC_ALLDIRS = $(SRC_DIR) $(patsubst %,$(SRC_DIR)/%,$(SRC_SUBDIRS))
