@@ -2,12 +2,13 @@
 #version 330 core
 
 in vec2 uv;
-out vec4 color;
 
 uniform sampler2D tex;
+
+out vec4 f_col;
 
 void main()
 {    
     vec4 sampled = texture(tex, uv);
-    color = sampled;
+    f_col = sampled;
 }  

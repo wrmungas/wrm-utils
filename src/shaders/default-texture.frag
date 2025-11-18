@@ -5,9 +5,9 @@ in vec2 uv;
 
 uniform sampler2D tex;
 
-out vec4 FragColor;
+out vec4 f_col;
 
 void main()
 {
-    FragColor = texture(tex, uv);
+    f_col = texture(tex, uv);
 }
