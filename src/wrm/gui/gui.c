@@ -11,8 +11,6 @@ static const char *WRM_GUI_TEXT_SHADER_NAME = "ui-text";
 static const char *WRM_GUI_IMAGE_SHADER_NAME = "ui-image";
 static const char *WRM_GUI_PANE_SHADER_NAME = "ui-pane";
 
-
-
 wrm_Handle wrm_gui_text_shader;
 wrm_Handle wrm_gui_image_shader;
 wrm_Handle wrm_gui_pane_shader;

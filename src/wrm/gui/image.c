@@ -26,7 +26,6 @@ void wrm_gui_drawImage(wrm_Image *i)
     // set up quad
     wrm_gui_setQuadCorners(tl, dim);
 
-
     wrm_gui_setQuadUV(WRM_QUAD_TL, (vec2){0.0f, 0.0f});
     wrm_gui_setQuadUV(WRM_QUAD_TR, (vec2){1.0f, 0.0f});
     wrm_gui_setQuadUV(WRM_QUAD_BL, (vec2){0.0f, 1.0f});
@@ -34,12 +33,9 @@ void wrm_gui_drawImage(wrm_Image *i)
 
     wrm_gui_updateQuad();
 
-    // render
-    glUseProgram(wrm_gui_image_shader);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, wrm_Pool_AT(wrm_textures, wrm_Texture, i->image_texture)->gl_tex);
-
+    // render./b
+    wrm_render_setGLShader(wrm_gui_image_shader);
+    wrm_render_setGLTexture(i->image_texture);
     glBindVertexArray(the_quad.vao);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 }

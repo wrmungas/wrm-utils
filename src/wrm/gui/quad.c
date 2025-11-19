@@ -17,7 +17,7 @@ void wrm_gui_initQuad(void)
     wrm_render_createVBO(&the_quad.uv_vbo, WRM_SHADER_ATTRIB_UV_LOC, 4, 2, the_quad.uvs, GL_DYNAMIC_DRAW);
 
     // indices are a little different than the rest, they will not be updated
-    GLuint indices[6] = {0, 1, 2, 1, 3, 2};
+    GLuint indices[6] = {0, 1, 3, 0, 3, 2};
     glGenBuffers(1, &the_quad.ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, the_quad.ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);

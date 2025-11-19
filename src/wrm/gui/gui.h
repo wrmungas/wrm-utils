@@ -178,5 +178,5 @@ inline void wrm_gui_setQuadCorners(const vec2 tl, const vec2 dim)
     wrm_gui_setQuadPos(WRM_QUAD_TL, tl);
     wrm_gui_setQuadPos(WRM_QUAD_TR, (vec2){tl[WRM_X] + dim[WRM_X], tl[WRM_Y]});
     wrm_gui_setQuadPos(WRM_QUAD_BL, (vec2){tl[WRM_X], tl[WRM_Y] - dim[WRM_Y]});
-    wrm_gui_setQuadPos(WRM_QUAD_BL, (vec2){tl[WRM_X] + dim[WRM_X], tl[WRM_Y] - dim[WRM_Y]});
+    wrm_gui_setQuadPos(WRM_QUAD_BR, (vec2){tl[WRM_X] + dim[WRM_X], tl[WRM_Y] - dim[WRM_Y]});
 }

@@ -40,7 +40,15 @@ int main(int argc, char **argv)
     wrm_Option_Handle bricks_tex = wrm_render_createTexture(&td);
     if(!bricks_tex.exists) wrm_fail(1, "Test", "main()", "failed to create bricks texture");
 
-    wrm_gui_Properties p = { .visible = true };
+
+    // create image element
+    // alignment: fully centered on middle of screen
+    wrm_gui_Alignment a = (wrm_gui_Alignment) {
+        .x = 0, .y = 0, .width = 100, .height = 100,
+        .x_from = WRM_CENTER, .x_is = WRM_CENTER,
+        .y_from = WRM_CENTER, .y_is = WRM_CENTER
+    };
+    wrm_gui_Properties p = { .visible = true, .alignment = a };
     wrm_Option_Handle image = wrm_gui_createImage(p, bricks_tex.val);
 
     if(!image.exists) wrm_fail(1, "Test", "main()", "failed to create image element");
@@ -48,6 +56,7 @@ int main(int argc, char **argv)
 
     bool should_close = false;
     u32 i = 0;
+    wrm_render_printDebugData();
     while(!should_close) {
         
         SDL_Event e;
@@ -57,17 +66,14 @@ int main(int argc, char **argv)
             }
         }
 
-        if(i % 60 == 0) {
-            wrm_gui_Alignment a = (wrm_gui_Alignment) {
+        if(i % 60 == 0 && false) { // disable this until I have this shit working
+            a = (wrm_gui_Alignment) {
                 .x = rand() % 200, .y = rand() % 170, .width = 100, .height = 100,
                 .x_from = rand() % 3, .x_is = rand() % 3,
                 .y_from = rand() % 3 + 2, .y_is = rand() % 3 + 2
             };
 
             wrm_gui_setAlignment(image.val, a);
-
-            wrm_gui_debugAlignment(a);
-            printf("\n");
 
             wrm_render_printDebugData();
         }
