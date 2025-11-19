@@ -7,7 +7,10 @@ wrm_Option_Handle wrm_gui_createPane(wrm_gui_Properties properties, wrm_RGBA col
 
     if(!result.exists) return result;
 
-    wrm_Pane *pane = (wrm_Pane*)wrm_Pool_AT(wrm_gui_elements, wrm_gui_Element, result.val);
+    wrm_gui_Element *e = wrm_Pool_at(&wrm_gui_elements, result.val);
+    if(!e) { return OPTION_NONE(Handle); }
+
+    wrm_Pane *pane = &e->pane;
     
     pane->properties = properties;
 

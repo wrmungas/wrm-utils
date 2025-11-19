@@ -16,15 +16,17 @@ wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle f
 
 void wrm_gui_drawText(wrm_Text *t)
 {
+    if(!t) return;
+
     u32 i = 0;
-    wrm_Font *f = wrm_Stack_AT(wrm_fonts, wrm_Font, t->font);
+    wrm_Font *f = wrm_Stack_at(&wrm_fonts, t->font);
 
     ivec2 start = { 
         t->properties.alignment.x,
         t->properties.alignment.y
     };
 
-    wrm_Shader *s = wrm_Pool_AT(wrm_shaders, wrm_Shader, wrm_gui_text_shader);
+    wrm_Shader *s = wrm_Pool_at(&wrm_shaders, wrm_gui_text_shader);
 
     // set GL state
     glUseProgram(s->program);
@@ -35,8 +37,9 @@ void wrm_gui_drawText(wrm_Text *t)
         glUniform3fv(color_loc, 1, (float[]){color.r, color.g, color.b});
     }
 
+    wrm_Texture *r_tex = wrm_Pool_at(&wrm_textures, f->atlas);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, wrm_Pool_AT(wrm_textures, wrm_Texture, f->atlas)->gl_tex);
+    glBindTexture(GL_TEXTURE_2D, r_tex->gl_tex);
 
     while(i < t->text_len) {
         i += wrm_gui_drawTextLine(t->text + i, f, start);

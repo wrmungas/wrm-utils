@@ -74,11 +74,12 @@ void wrm_gui_draw(void)
     }
 
     for(u32 i = 0; i < wrm_gui_tbd.len; i++) {
-        wrm_Handle idx = *wrm_Stack_AT(wrm_gui_tbd, wrm_Handle, i);
-        wrm_gui_Element *e = wrm_Pool_AT(wrm_gui_elements, wrm_gui_Element, idx);
+        wrm_Handle *idx = wrm_Stack_at(&wrm_gui_tbd, i);
+        if(!idx) continue; // skip this one, I guess? this shouldn't really happen
+        wrm_gui_Element *e = wrm_Pool_at(&wrm_gui_elements, *idx);
 
         if(wrm_render_debug_frame) {
-            wrm_gui_debugElement(idx);
+            wrm_gui_debugElement(*idx);
         }
 
         switch(e->properties.type) {
@@ -108,7 +109,7 @@ void wrm_gui_quit(void)
 void wrm_gui_debugElement(wrm_Handle element)
 {
     if(!wrm_gui_exists(element)) return;
-    wrm_gui_Element *e = wrm_Pool_AT(wrm_gui_elements, wrm_gui_Element, element);
+    wrm_gui_Element *e = wrm_Pool_at(&wrm_gui_elements, element);
    
     const char *strings[3] = { "TEXT",  "PANE", "IMAGE"};
     printf("GUI Element [%u] (%s): \n", element, strings[e->properties.type]);
@@ -170,10 +171,14 @@ static void wrm_gui_prepareElements(void)
 
     for(u32 i = 0; i < wrm_gui_elements.cap; i++) {
         // if the element exists and is visible, add its handle to the top of the tbd stack
-        if(wrm_gui_elements.is_used[i] && wrm_Pool_AT(wrm_gui_elements, wrm_gui_Element, i)->properties.visible) {
-            wrm_Option_Handle top = wrm_Stack_push(&wrm_gui_tbd);
-            if(top.exists) {
-                *wrm_Stack_AT(wrm_gui_tbd, wrm_Handle, top.val) = i;
+        wrm_gui_Element *e = wrm_Pool_at(&wrm_gui_elements, i);
+
+        if(e && e->properties.visible) {
+            wrm_Option_Handle top_idx = wrm_Stack_push(&wrm_gui_tbd);
+
+            if(top_idx.exists) {
+                u32 *top = wrm_Stack_at(&wrm_gui_tbd, top_idx.val);
+                if(top) *top = i;
             }
         }
     }

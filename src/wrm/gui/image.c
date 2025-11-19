@@ -6,7 +6,10 @@ wrm_Option_Handle wrm_gui_createImage(wrm_gui_Properties properties, wrm_Handle 
 
     if(!result.exists) return result;
 
-    wrm_Image *image = (wrm_Image*)wrm_Pool_AT(wrm_gui_elements, wrm_gui_Element, result.val);
+    wrm_gui_Element *e = wrm_Pool_at(&wrm_gui_elements, result.val);
+    if(!e) { return OPTION_NONE(Handle); }
+
+    wrm_Image *image = &e->image;
     
     image->properties = properties;
 

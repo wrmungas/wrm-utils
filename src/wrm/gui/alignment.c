@@ -91,7 +91,9 @@ bool wrm_gui_setAlignment(wrm_Handle element, wrm_gui_Alignment alignment)
 {
     if(!wrm_gui_exists(element)) return false;
 
-    wrm_Pool_AT(wrm_gui_elements, wrm_gui_Element, element)->properties.alignment = alignment;
+    wrm_gui_Element *e = wrm_Pool_at(&wrm_gui_elements, element);
+    if(!e) return false;
+    e->properties.alignment = alignment;
     return true;
 }
 

@@ -18,7 +18,9 @@ wrm_Option_Handle wrm_gui_loadFont(const char *path)
         return f_handle; 
     }
 
-    wrm_Font *f = wrm_Stack_AT(wrm_fonts, wrm_Font, f_handle.val);
+    wrm_Font *f = wrm_Stack_at(&wrm_fonts, f_handle.val);
+
+    if(!f) { return OPTION_NONE(Handle); }
 
     f->glyph_set = calloc(WRM_FONT_GLYPHS_COUNT, sizeof(wrm_Glyph));
 
