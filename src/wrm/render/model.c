@@ -144,7 +144,7 @@ bool wrm_render_addChild(wrm_Handle parent, wrm_Handle child)
         return false;
     }
 
-    wrm_Model *m = wrm_Pool_AS(wrm_models, wrm_Model);
+    wrm_Model *m = wrm_data_AS(wrm_models, wrm_Model);
 
     if(m[parent].child_count == WRM_MODEL_CHILD_LIMIT) {
         if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot add another child to model [%u] (limit reached!)\n", parent); }
@@ -176,7 +176,7 @@ bool wrm_render_removeChild(wrm_Handle parent, wrm_Handle child)
         return false;
     }
 
-    wrm_Model *m = wrm_Pool_AS(wrm_models, wrm_Model);
+    wrm_Model *m = wrm_data_AS(wrm_models, wrm_Model);
 
     if(m[parent].child_count == 0) {
         if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot remove child from model [%u] (has no children!)\n", parent); }
@@ -220,7 +220,7 @@ void wrm_render_printModelData(wrm_Handle model)
 {
     if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, "printModelData()", "")) return;
 
-    wrm_Model m = wrm_Pool_AS(wrm_models, wrm_Model)[model];
+    wrm_Model *m = wrm_data_at(wrm_models, model);
     printf(
         "[%u]: { \n"
         "   shader: %u, texture: %u, mesh: %u, is_ui: %s, is_visible: %s,\n"
@@ -229,27 +229,27 @@ void wrm_render_printModelData(wrm_Handle model)
         "   children: [ "
         , 
         model, 
-        m.shader,
-        m.texture,
-        m.mesh,
-        m.is_ui ? "true" : "false",
-        m.is_visible ? "true" : "false",
-        m.pos[0], m.pos[1], m.pos[2],
-        m.rot[0], m.rot[1], m.rot[2],
-        m.scale[0], m.scale[1], m.scale[2],
-        m.parent,
-        m.child_count,
-        m.show_children ? "true" : "false"
+        m->shader,
+        m->texture,
+        m->mesh,
+        m->is_ui ? "true" : "false",
+        m->is_visible ? "true" : "false",
+        m->pos[0], m->pos[1], m->pos[2],
+        m->rot[0], m->rot[1], m->rot[2],
+        m->scale[0], m->scale[1], m->scale[2],
+        m->parent,
+        m->child_count,
+        m->show_children ? "true" : "false"
     );
     for(u8 j = 0; j < WRM_MODEL_CHILD_LIMIT; j++) {
-        printf("%u, ", m.children[j]);
+        printf("%u, ", m->children[j]);
     }
     printf("]   }\n");
 }
 
 void wrm_render_deleteModel(wrm_Handle model)
 {
-    if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, "deleteModel()", "")) return;
+    wrm_Model_delete(wrm_Pool_at(&wrm_models, model));
     wrm_Pool_freeSlot(&wrm_models, model);
 }
 
@@ -311,4 +311,15 @@ wrm_Option_Handle wrm_render_createTestCube(void)
     }
     if(wrm_render_settings.verbose) printf("Render: Created test cube model (handle=%d)\n", model.val);
     return model;
+}
+
+void wrm_Model_delete(void *model)
+{
+    if(!model) return;
+    wrm_Model *m = model;
+
+    // if any of these are non-NULL they will be cleaned up
+    wrm_Shader_delete(wrm_Pool_at(&wrm_shaders, m->shader));
+    wrm_Mesh_delete(wrm_Pool_at(&wrm_meshes, m->mesh));
+    wrm_Texture_delete(wrm_Pool_at(&wrm_textures, m->texture));
 }

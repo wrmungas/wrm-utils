@@ -102,6 +102,13 @@ void wrm_render_printShaderData(wrm_Handle shader)
     );
 }
 
+void wrm_render_deleteShader(wrm_Handle shader)
+{
+    wrm_Shader_delete(wrm_Pool_at(&wrm_shaders, shader));
+    wrm_Pool_freeSlot(&wrm_shaders, shader);
+}
+
+
 // module internal 
 
 wrm_Option_GLuint wrm_render_compileShader(const char *shader_text, GLenum type) 
@@ -212,17 +219,14 @@ wrm_Option_Handle wrm_render_loadAndCreateShader(const char *dir, const char *na
     return result;
 }
 
-void wrm_render_deleteShader(wrm_Handle shader)
+void wrm_Shader_delete(void *shader)
 {
-    if(!wrm_render_exists(shader, WRM_RENDER_RESOURCE_SHADER, "deleteShader()", "")) return;
-
-    wrm_Shader *s = wrm_Pool_at(&wrm_shaders, shader);
+    if(!shader) return;
+    wrm_Shader *s = shader;
 
     glDeleteShader(s->vert);
     glDeleteShader(s->frag);
     glDeleteProgram(s->program);
-
-    wrm_Pool_freeSlot(&wrm_shaders, shader);
 }
 
 

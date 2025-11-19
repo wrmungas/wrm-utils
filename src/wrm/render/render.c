@@ -179,12 +179,12 @@ void wrm_render_quit(void)
 {
     if(!wrm_render_is_initialized) return;
 
-    wrm_Pool_delete(&wrm_shaders);
-    wrm_Pool_delete(&wrm_textures);
-    wrm_Pool_delete(&wrm_meshes);
-    wrm_Pool_delete(&wrm_models);
+    wrm_Pool_delete(&wrm_shaders, wrm_Shader_delete);
+    wrm_Pool_delete(&wrm_textures, wrm_Texture_delete);
+    wrm_Pool_delete(&wrm_meshes, wrm_Mesh_delete);
+    wrm_Pool_delete(&wrm_models, wrm_Model_delete);
 
-    wrm_Stack_delete(&wrm_tbd);
+    wrm_Stack_delete(&wrm_tbd, NULL);
 
     SDL_GL_DeleteContext(wrm_gl_context);
     
@@ -396,7 +396,7 @@ static void wrm_render_prepareModels(bool ui_pass)
     // clear the list
     wrm_Stack_reset(&wrm_tbd, 0);
 
-    wrm_Model *models = wrm_Pool_AS(wrm_models, wrm_Model);
+    wrm_Model *models = wrm_data_AS(wrm_models, wrm_Model);
 
     // skip model 0 (implicit parent)
     for(u32 i = 1; i < wrm_models.cap; i++) {

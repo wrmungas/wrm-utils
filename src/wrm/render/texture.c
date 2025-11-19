@@ -93,11 +93,7 @@ void wrm_render_printTextureData(wrm_Handle texture)
 
 void wrm_render_deleteTexture(wrm_Handle texture)
 {
-    if(!wrm_render_exists(texture, WRM_RENDER_RESOURCE_TEXTURE, "deleteTexture()", "")) return;
-
-    wrm_Texture *t = wrm_Pool_at(&wrm_textures, texture);
-
-    glDeleteTextures(1, &(t->gl_tex));
+    wrm_Texture_delete(wrm_Pool_at(&wrm_textures, texture));
     wrm_Pool_freeSlot(&wrm_textures, texture);
 }
 
@@ -128,4 +124,11 @@ bool wrm_render_createErrorTexture(void)
 
     if(wrm_render_settings.verbose) printf("Render: created error texture\n");
     return true;
+}
+
+void wrm_Texture_delete(void *texture)
+{
+    if(!texture) return;
+    wrm_Texture *t = texture;
+    glDeleteTextures(1, &t->gl_tex);
 }

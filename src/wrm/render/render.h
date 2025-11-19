@@ -194,16 +194,22 @@ void wrm_render_createVBO(GLuint *vbo, u32 attr_loc, size_t num_entries, size_t 
 // Sets the GL shader program to the given WRM shader, if valid 
 inline void wrm_render_setGLShader(wrm_Handle shader)
 {
-    if(shader < wrm_shaders.cap && wrm_shaders.is_used[shader]) {
-        glUseProgram(wrm_Pool_AT(wrm_shaders, wrm_Shader, shader)->program);
-    }
+    wrm_Shader *s = wrm_Pool_at(&wrm_shaders, shader);
+    if(s) glUseProgram(s->program);
 }
 // sets the GL texture to the given WRM texture, if valid
 inline void wrm_render_setGLTexture(wrm_Handle texture)
 {
-    if(texture < wrm_textures.cap && wrm_textures.is_used[texture]) {
+    wrm_Texture *t = wrm_Pool_at(&wrm_textures, texture);
+    if(t) {
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, wrm_Pool_AT(wrm_textures, wrm_Texture, texture)->gl_tex);
+        glBindTexture(GL_TEXTURE_2D, t->gl_tex);
     }
 }
+
+// internal cleanup functions (NOT user visible, use pointers)
+void wrm_Shader_delete(void *shader);
+void wrm_Mesh_delete(void *mesh);
+void wrm_Texture_delete(void *texture);
+void wrm_Model_delete(void *model);
 

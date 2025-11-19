@@ -298,12 +298,18 @@ void wrm_render_printMeshData(wrm_Handle mesh)
 
 void wrm_render_deleteMesh(wrm_Handle mesh)
 {
-    if(!wrm_render_exists(mesh, WRM_RENDER_RESOURCE_MESH, "deleteMesh()", "")) return;
+    wrm_Mesh_delete(wrm_Pool_at(&wrm_meshes, mesh));
+    wrm_Pool_freeSlot(&wrm_meshes, mesh);
+}
 
-    wrm_Mesh *m = wrm_Pool_at(&wrm_meshes, mesh);
+// module internal
+
+void wrm_Mesh_delete(void *mesh)
+{
+    if(!mesh) return;
+    wrm_Mesh *m = mesh;
 
     // silently ignores any of these that are 0
     glDeleteBuffers(4, (GLuint[]){ m->pos_vbo, m->col_vbo, m->uv_vbo, m->ebo});
     glDeleteVertexArrays(1, &m->vao);
-    wrm_Pool_freeSlot(&wrm_meshes, mesh);
 }
