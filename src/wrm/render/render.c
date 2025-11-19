@@ -219,7 +219,7 @@ void wrm_render_draw(void)
     
     // initialize GL state and tracking of changes
     wrm_render_Data *prev = NULL;
-    wrm_render_Data *curr = wrm_Stack_AT(wrm_tbd, wrm_render_Data, 0);
+    wrm_render_Data *curr = wrm_tbd.data;
     u32 count = 0;
     GLenum mode = 0;
     bool indexed = false;
@@ -425,12 +425,12 @@ static void wrm_render_addModelAndChildren(wrm_Handle m_handle, mat4 parent_tran
         data.shader = m.shader;
         data.texture = m.texture;
         data.src_model = m_handle;
-        wrm_Option_Handle top_of_stack = wrm_Stack_push(&wrm_tbd);
-        if(!top_of_stack.exists) {
+        wrm_Option_Handle top = wrm_Stack_push(&wrm_tbd);
+        if(!top.exists) {
             wrm_error("Render", "addModelAndChildren()", "failed to allocate space on draw stack!");
             return;
         }
-        *(wrm_Stack_AT(wrm_tbd, wrm_render_Data, top_of_stack.val)) = data;
+        memcpy(wrm_Stack_at(&wrm_tbd, top.val), &data, sizeof(data));
     }
     
     if(!(m.child_count && m.show_children)) { return; }
@@ -465,7 +465,11 @@ static void wrm_render_updateGLState(wrm_render_Data *curr, wrm_render_Data *pre
 
 void wrm_render_drawModel(wrm_render_Data *draw_data, mat4 view, mat4 persp, u32 count, GLenum mode, bool indexed)
 {
-    GLint mvp_loc = glGetUniformLocation(wrm_Pool_AT(wrm_shaders, wrm_Shader, draw_data->shader)->program, "mvp");
+    wrm_Shader* shader = wrm_Pool_at(&wrm_shaders, draw_data->shader);
+
+    if(!shader) { return; }
+
+    GLint mvp_loc = glGetUniformLocation(shader->program, "mvp");
     if(mvp_loc != -1) {
         // calculate MVP matrix
         mat4 mvp;

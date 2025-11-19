@@ -184,7 +184,7 @@ wrm_Option_Handle wrm_render_createMesh(const wrm_Mesh_Data *data)
     if(!data) { return OPTION_NONE(Handle); }
     
     wrm_Option_Handle result = wrm_Pool_getSlot(&wrm_meshes);
-    wrm_Mesh *mesh = wrm_Pool_AT(wrm_meshes, wrm_Mesh, result.val);
+    wrm_Mesh *mesh = wrm_Pool_at(&wrm_meshes, result.val);
     *mesh = (wrm_Mesh){
         .format = data->format,
         .vao = 0,
@@ -275,7 +275,7 @@ void wrm_render_printMeshData(wrm_Handle mesh)
 {
     if(!wrm_render_exists(mesh, WRM_RENDER_RESOURCE_MESH, "printMeshData()", "")) return;
 
-    wrm_Mesh *m = wrm_Pool_AT(wrm_meshes, wrm_Mesh, mesh);
+    wrm_Mesh *m = wrm_Pool_at(&wrm_meshes, mesh);
     printf(
         "[%u]: {\n"
         "  format: { tex: %s, col: %s, per_pos: %u },\n"
@@ -300,7 +300,7 @@ void wrm_render_deleteMesh(wrm_Handle mesh)
 {
     if(!wrm_render_exists(mesh, WRM_RENDER_RESOURCE_MESH, "deleteMesh()", "")) return;
 
-    wrm_Mesh *m = wrm_Pool_AT(wrm_meshes, wrm_Mesh, mesh);
+    wrm_Mesh *m = wrm_Pool_at(&wrm_meshes, mesh);
 
     // silently ignores any of these that are 0
     glDeleteBuffers(4, (GLuint[]){ m->pos_vbo, m->col_vbo, m->uv_vbo, m->ebo});

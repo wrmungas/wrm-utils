@@ -45,7 +45,7 @@ wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle 
         return OPTION_NONE(Handle);
     }
 
-    wrm_Model* model = wrm_Pool_AT(wrm_models, wrm_Model, result.val);
+    wrm_Model* model = wrm_Pool_at(&wrm_models, result.val);
 
     // explicitly zero-initialize children;
     model->child_count = 0;
@@ -72,10 +72,8 @@ bool wrm_render_getModel(wrm_Handle model, wrm_Model *dest)
 
 bool wrm_render_setModelTransform(wrm_Handle model, const vec3 pos, const vec3 rot, const vec3 scale)
 {
-    if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, __func__, "")) {
-        return false;
-    }
-    wrm_Model *data = wrm_Pool_AT(wrm_models, wrm_Model, model);
+    wrm_Model *data = wrm_Pool_at(&wrm_models, model);
+    if(!data) { return false; }
 
     if(pos) wrm_vec3_copy(pos, data->pos);
     if(rot) wrm_vec3_copy(rot, data->rot);
@@ -86,10 +84,8 @@ bool wrm_render_setModelTransform(wrm_Handle model, const vec3 pos, const vec3 r
 
 bool wrm_render_addModelTransform(wrm_Handle model, const vec3 pos, const vec3 rot, const vec3 scale)
 {
-    if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, "addModelTransform()", "")) {
-        return false;
-    }
-    wrm_Model *data = wrm_Pool_AT(wrm_models, wrm_Model, model);
+    wrm_Model *data = wrm_Pool_at(&wrm_models, model);
+    if(!data) { return false; }
 
     if(pos) wrm_vec3_add(pos, data->pos);
     if(rot) wrm_vec3_add(rot, data->rot);
@@ -100,40 +96,39 @@ bool wrm_render_addModelTransform(wrm_Handle model, const vec3 pos, const vec3 r
 
 bool wrm_render_setModelMesh(wrm_Handle model, wrm_Handle mesh) 
 {
-    const char *caller = "setModelMesh()";
-    if(wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, caller, "(model)") && wrm_render_exists(mesh, WRM_RENDER_RESOURCE_MESH, caller, "(mesh)")) {
-        wrm_Pool_AT(wrm_models, wrm_Model, model)->mesh = mesh;
-        return true;
-    }
-    return false;
+    wrm_Model *m = wrm_Pool_at(&wrm_models, model);
+    wrm_Mesh *msh = wrm_Pool_at(&wrm_meshes, mesh);
+    if(!m || !msh) { return false; }
+
+    m->mesh = mesh;
+    return true;
 }
 
 bool wrm_render_setModelTexture(wrm_Handle model, wrm_Handle texture)
 {
-    const char *caller = "setModelTexture()";
-    if(wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, caller, "(model)") && wrm_render_exists(texture, WRM_RENDER_RESOURCE_TEXTURE, caller, "(texture)")) {
-        wrm_Pool_AT(wrm_models, wrm_Model, model)->texture = texture;
-        return true;
-    }
-    return false;
+    wrm_Model *m = wrm_Pool_at(&wrm_models, model);
+    wrm_Texture *t = wrm_Pool_at(&wrm_textures, texture);
+
+    if(!m || !t) { return false; }
+
+    m->texture = texture;
+    return true;
 }
 
 bool wrm_render_setModelShader(wrm_Handle model, wrm_Handle shader)
 {
-    const char *caller = "setModelShader()";
-    if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, caller, "") && wrm_render_exists(shader, WRM_RENDER_RESOURCE_SHADER, caller, "")) {
-        return false;
-    }
+    wrm_Model *mod = wrm_Pool_at(&wrm_models, model);
+    wrm_Shader *s = wrm_Pool_at(&wrm_shaders, shader);
+    if(!mod || !s) { return false; }
 
-    wrm_Model *mod = wrm_Pool_AT(wrm_models, wrm_Model, model);
-    wrm_Shader *s = wrm_Pool_AT(wrm_shaders, wrm_Shader, shader);
-    wrm_Mesh *mesh = wrm_Pool_AT(wrm_meshes, wrm_Mesh, mod->mesh);
+    wrm_Mesh *mesh = wrm_Pool_at(&wrm_meshes, mod->mesh);
+    if(!mesh) { return false; }
 
     // ensure the shader and mesh are compatible
     wrm_render_Format sf = s->format;
     wrm_render_Format mf = mesh->format;
     if( (sf.col && !mf.col) || (sf.per_pos && !mf.per_pos) || (sf.tex && !mf.tex)) {
-        if(wrm_render_settings.errors) wrm_error("Render", caller, "Mesh [%u] does not meet shader [%u] data requirements", mod->mesh, shader);
+        if(wrm_render_settings.errors) wrm_error("Render", "setModelShader()", "Mesh [%u] does not meet shader [%u] data requirements", mod->mesh, shader);
         return false;
     }
 

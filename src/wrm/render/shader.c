@@ -19,7 +19,7 @@ wrm_Option_Handle wrm_render_createShader(const char *vert_text, const char *fra
 
     if(!pool_result.exists) return pool_result;
 
-    wrm_Shader *s = wrm_Pool_AT(wrm_shaders, wrm_Shader, pool_result.val);
+    wrm_Shader *s = wrm_Pool_at(&wrm_shaders, pool_result.val);
     s->format = format;
 
     // first compile the vertex and fragment shaders individually
@@ -86,7 +86,7 @@ void wrm_render_printShaderData(wrm_Handle shader)
 {
     if(!wrm_render_exists(shader, WRM_RENDER_RESOURCE_SHADER, "printShaderData()", "")) return;
     
-    wrm_Shader *s = wrm_Pool_AT(wrm_shaders, wrm_Shader, shader);
+    wrm_Shader *s = wrm_Pool_at(&wrm_shaders, shader);
 
     printf(
         "[%u]: { \n"
@@ -138,7 +138,7 @@ wrm_Option_Handle wrm_render_getDefaultShader(wrm_Handle mesh)
     if(!wrm_render_exists(mesh, WRM_RENDER_RESOURCE_MESH, caller, "")) {
         return OPTION_NONE(Handle);
     }
-    wrm_Mesh *m = wrm_Pool_AT(wrm_meshes, wrm_Mesh, mesh);
+    wrm_Mesh *m = wrm_Pool_at(&wrm_meshes, mesh);
     
     // prioritize texture over color
     if(m->uv_vbo) {
@@ -216,7 +216,7 @@ void wrm_render_deleteShader(wrm_Handle shader)
 {
     if(!wrm_render_exists(shader, WRM_RENDER_RESOURCE_SHADER, "deleteShader()", "")) return;
 
-    wrm_Shader *s = wrm_Pool_AT(wrm_shaders, wrm_Shader, shader);
+    wrm_Shader *s = wrm_Pool_at(&wrm_shaders, shader);
 
     glDeleteShader(s->vert);
     glDeleteShader(s->frag);

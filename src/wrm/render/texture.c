@@ -33,7 +33,7 @@ wrm_Option_Handle wrm_render_createTexture(const wrm_Texture_Data *data)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    wrm_Texture *t = wrm_Pool_AT(wrm_textures, wrm_Texture, result.val);
+    wrm_Texture *t = wrm_Pool_at(&wrm_textures, result.val);
     *t = (wrm_Texture){
         .gl_tex = texture,
         .w = data->width,
@@ -67,7 +67,7 @@ bool wrm_render_updateTexture(wrm_Handle texture, wrm_Texture_Data *data, u32 x,
         return false;
     }
 
-    wrm_Texture *t = wrm_Pool_AT(wrm_textures, wrm_Texture, texture);
+    wrm_Texture *t = wrm_Pool_at(&wrm_textures, texture);
 
     GLuint gl_format = (data->channels == 1) ? GL_ALPHA : GL_RGBA;
     glActiveTexture(GL_TEXTURE0);
@@ -81,7 +81,7 @@ bool wrm_render_updateTexture(wrm_Handle texture, wrm_Texture_Data *data, u32 x,
 void wrm_render_printTextureData(wrm_Handle texture)
 {
     if(!wrm_render_exists(texture, WRM_RENDER_RESOURCE_TEXTURE, "printTextureData()", "")) return;
-    wrm_Texture *t = wrm_Pool_AT(wrm_textures, wrm_Texture, texture);
+    wrm_Texture *t = wrm_Pool_at(&wrm_textures, texture);
     printf(
         "[%u]: { gl_tex: %u, h: %u, w: %u }\n", 
         texture,
@@ -95,7 +95,7 @@ void wrm_render_deleteTexture(wrm_Handle texture)
 {
     if(!wrm_render_exists(texture, WRM_RENDER_RESOURCE_TEXTURE, "deleteTexture()", "")) return;
 
-    wrm_Texture *t = wrm_Pool_AT(wrm_textures, wrm_Texture, texture);
+    wrm_Texture *t = wrm_Pool_at(&wrm_textures, texture);
 
     glDeleteTextures(1, &(t->gl_tex));
     wrm_Pool_freeSlot(&wrm_textures, texture);
