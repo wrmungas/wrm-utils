@@ -295,10 +295,6 @@ void wrm_render_printDebugData(void)
     wrm_render_printCameraData();
 }
 
-void wrm_render_setUIShown(bool show_ui)
-{
-    wrm_show_ui = show_ui;
-}
 
 void wrm_render_getOrientation(const vec3 rot, vec3 forward, vec3 up, vec3 right)
 {

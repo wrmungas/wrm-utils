@@ -194,8 +194,6 @@ SDL_Window *wrm_render_getWindow(void);
 void wrm_render_onWindowResize(void);
 /* Prints debug info about current render state to standard output */
 void wrm_render_printDebugData(void);
-/* Set a flag for whether or not to show the GUI elements */
-void wrm_render_setUIShown(bool show_ui);
 
 // shader-related
 
