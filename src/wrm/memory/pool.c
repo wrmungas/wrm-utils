@@ -37,7 +37,14 @@ wrm_Option_Handle wrm_Pool_getSlot(wrm_Pool *p)
 bool wrm_Pool_reserve(wrm_Pool *p, size_t capacity)
 {
     if(capacity >= WRM_POOL_MAX_CAPACITY) return false;
-    if(!(realloc(p->data, capacity * p->element_size ) && realloc(p->is_used, capacity * sizeof(bool)) ) ) { return false; }
+    // reallocate
+    void *temp = realloc(p->data, capacity * p->element_size );
+    if(!temp) { return false; }
+    p->data = temp;
+
+    temp = realloc(p->is_used, capacity * sizeof(bool));
+    if(!temp ) { return false; }
+    p->is_used = temp;
     
     p->cap = capacity;
     return true;
@@ -51,16 +58,16 @@ bool wrm_Pool_shrink(wrm_Pool *p, size_t capacity)
     wrm_Pool new_pool;
     wrm_Pool_init(&new_pool, capacity, p->element_size, p->auto_reserve);
 
-    // copy all the old elements over
+    // copy (shallow) all the old elements over
     for(u32 i = 0; i < p->cap; i++) {
         if(p->is_used[i]) {
-            void *src = wrm_Pool_AT(*p, u8, i * p->element_size); 
+            void *src = wrm_Pool_at(p, i); 
             wrm_Option_Handle result = wrm_Pool_getSlot(&new_pool);
             if(!result.exists) {
                 wrm_error("Pool", "shrink()", "could not copy all data from the old to the new buffer!!");
                 return false;
             }
-            void *dest = wrm_Pool_AT(new_pool, u8, result.val);
+            void *dest = wrm_Pool_at(&new_pool, result.val);
             memcpy(dest, src, p->element_size);
         }
     }
@@ -68,22 +75,26 @@ bool wrm_Pool_shrink(wrm_Pool *p, size_t capacity)
     // just to be sure
     if(new_pool.used != p->used) {
         wrm_error("Pool", "shrink()", "could not copy all data from the old to the new buffer!!");
+        return false;
     }
 
-    // delete old resources and swap
-    wrm_Pool_delete(p);
+    // delete (shallow) old resources and swap
+    wrm_Pool_delete(p, NULL);
     *p = new_pool;
     return true;
 }
 
-// force the compiler to emit a symbol for these
-
-bool wrm_Pool_isValid(wrm_Pool *p, wrm_Handle idx);
-
-void wrm_Pool_freeSlot(wrm_Pool *p, wrm_Handle idx);
-
-void wrm_Pool_delete(wrm_Pool *p)
+void wrm_Pool_delete(wrm_Pool *p, void (*delete)(void *element))
 {
+    if(!p || !p->data || !p->is_used) { return; }
+
+    if(delete) {
+        for(u32 i = 0; i < p->cap; i++) {
+            if(p->is_used[i]) delete(wrm_Pool_at(p, i)); 
+        }
+    }
+    
+
     free(p->data);
     free(p->is_used);
 
@@ -94,3 +105,10 @@ void wrm_Pool_delete(wrm_Pool *p)
     p->element_size = 0;
     p->cap = 0;
 }
+
+// force the compiler to emit a symbol for these
+
+bool wrm_Pool_isValid(wrm_Pool *p, wrm_Handle idx);
+void wrm_Pool_freeSlot(wrm_Pool *p, wrm_Handle idx);
+void *wrm_Pool_offsetAt(wrm_Pool *p, wrm_Handle idx, size_t offset);
+void *wrm_Pool_at(wrm_Pool *p, wrm_Handle idx);

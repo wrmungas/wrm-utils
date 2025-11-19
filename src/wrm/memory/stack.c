@@ -14,18 +14,22 @@ bool wrm_Stack_init(wrm_Stack *s, size_t capacity, size_t element_size, bool aut
 
 bool wrm_Stack_reserve(wrm_Stack *s, size_t capacity)
 {
-    if(capacity <= s->cap) return false;
+    if(capacity < s->cap) return false;
 
-    if(!realloc(s->data, capacity * s->element_size)) { return false; }
+    void *temp = realloc(s->data, capacity * s->element_size);
+    if(!temp) { return false; }
+    s->data = temp;
     s->cap = capacity;
     return true;
 }
 
 bool wrm_Stack_shrink(wrm_Stack *s, size_t capacity)
 {
-    if(capacity > s->cap) return false;
+    if(capacity > s->cap || capacity < s->len) return false;
 
-    if(!realloc(s->data, capacity * s->element_size)) { return false; }
+    void *temp = realloc(s->data, capacity * s->element_size);
+    if(!temp) { return false; }
+    s->data = temp;
     s->cap = capacity;
     return true;
 }
@@ -40,15 +44,24 @@ wrm_Option_Handle wrm_Stack_push(wrm_Stack *s)
     return OPTION_SOME(Handle, s->len++);
 }
 
-// force the compiler to emit a symbol
-
-void wrm_Stack_reset(wrm_Stack *s, size_t len);
-
-void wrm_Stack_delete(wrm_Stack *s)
+void wrm_Stack_delete(wrm_Stack *s, void (*delete)(void *element))
 {
+    if(!s || !s->data) { return; }
+
+    if(delete) {
+        for(u32 i = 0; i < s->len; i++) {
+            delete(wrm_Stack_at(s, i));
+        }
+    }
+    
     free(s->data);
     s->data = NULL;
     s->element_size = 0;
     s->cap = 0;
     s->len = 0;
 }
+
+// force the compiler to emit a symbol
+
+void wrm_Stack_reset(wrm_Stack *s, size_t len);
+void *wrm_Stack_at(wrm_Stack *s, wrm_Handle idx);
