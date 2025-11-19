@@ -149,7 +149,7 @@ wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle f
 // pane
 
 /* Create a pane element */
-wrm_Option_Handle wrm_gui_createPane(wrm_gui_Properties properties);
+wrm_Option_Handle wrm_gui_createPane(wrm_gui_Properties properties, wrm_RGBA color);
 
 // image
 

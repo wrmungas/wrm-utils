@@ -35,6 +35,7 @@ bool wrm_gui_init(const char *shader_dir)
         wrm_error("GUI", "init()", "failed to initialize fonts list");
         return false;
     }
+    
     if(!wrm_Pool_init(&wrm_gui_elements, WRM_GUI_INITIAL_ELEMENTS_CAPACITY, sizeof(wrm_gui_Element), true)) {
         wrm_error("GUI", "init()", "failed to initialize elements pool");
         return false;
@@ -62,6 +63,9 @@ void wrm_gui_draw(void)
 {
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     wrm_gui_prepareElements();
 

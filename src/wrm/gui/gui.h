@@ -152,10 +152,10 @@ inline void wrm_gui_setQuadCol(int vtx, const wrm_RGBAf col)
 {
     if(vtx > 3) return;
 
-    the_quad.positions[vtx * 4 + 0] = col.r;
-    the_quad.positions[vtx * 4 + 0] = col.g;
-    the_quad.positions[vtx * 4 + 0] = col.b;
-    the_quad.positions[vtx * 4 + 0] = col.a;
+    the_quad.colors[vtx * 4 + 0] = col.r;
+    the_quad.colors[vtx * 4 + 1] = col.g;
+    the_quad.colors[vtx * 4 + 2] = col.b;
+    the_quad.colors[vtx * 4 + 3] = col.a;
 }
 /* Set the uv coordinates of the given vertex in The Quad */
 inline void wrm_gui_setQuadUV(int vtx, const vec2 uv)
