@@ -66,7 +66,7 @@ struct wrm_Tree_Node {
     u32 parent;
     u32 children;
     u8 child_count;
-    bool root;
+    bool has_parent;
 };
 
 struct wrm_Tree {
@@ -74,7 +74,7 @@ struct wrm_Tree {
     void *src; // source pool or stack : NOT owned by the tree, and only the Tree_Nodes within are modified
     wrm_Pool child_lists;  // auxiliary pool of child lists: owned by the tree
     size_t child_limit; // basically child_lists->element_size / sizeof(u32)
-    size_t tn_offset; // byte offset of Tree_Node struct inside objects
+    size_t node_offset; // byte offset of Tree_Node struct inside objects
 };
 
 
@@ -113,7 +113,7 @@ wrm_Option_Handle wrm_Pool_getSlot(wrm_Pool *p);
 /* Check that the slot at a given index is valid for pool `p`: p is not NULL, the index is within p, and the element at index is in use */
 inline bool wrm_Pool_isValid(wrm_Pool *p, wrm_Handle idx)
 {
-    return p && idx < p->cap && p->is_used[idx];
+    return p && (idx < p->cap) && p->is_used[idx];
 }
 /* Release the slot at `idx` for reuse, if it wasn't already available, in pool `p` */
 inline void wrm_Pool_freeSlot(wrm_Pool *p, wrm_Handle idx)
@@ -122,12 +122,12 @@ inline void wrm_Pool_freeSlot(wrm_Pool *p, wrm_Handle idx)
     p->is_used[idx] = false;
     p->used--;
 }
-/* Get a safe void* to a location `offset` bytes from the start of the element at `idx` */
+/* Get a safe void* to a location `offset` bytes from the start of the element at `idx`; returns NULL if `p` is NULL, `idx` is invalid, or `offset` is too big */
 inline void *wrm_Pool_offsetAt(wrm_Pool *p, wrm_Handle idx, size_t offset)
 {
     return (wrm_Pool_isValid(p, idx) && (offset < p->element_size))  ? (u8*)p->data + idx * p->element_size + offset : NULL;
 }
-/* Get a safe void* to a location in a pool; returns NULL if the idx is invalid (out-of-bounds or freed slot)*/
+/* Get a safe void* to a location in a pool; returns NULL if `p` is NULL or `idx` is invalid (out-of-bounds or freed slot) */
 inline void *wrm_Pool_at(wrm_Pool *p, wrm_Handle idx)
 {
     return wrm_Pool_offsetAt(p, idx, 0);
@@ -170,11 +170,12 @@ inline void wrm_Stack_reset(wrm_Stack *s, size_t len)
     if(len > s->len) return;
     s->len = len;
 }
+/* Get a safe void* to a location `offset` bytes from the start of the element at `idx`; returns NULL if `s` is NULL, `idx` is invalid, or `offset` is too big */
 inline void *wrm_Stack_offsetAt(wrm_Stack *s, wrm_Handle idx, size_t offset)
 {
     return (s && idx < s->len && (offset < s->element_size))  ? (u8*)s->data + idx * s->element_size + offset : NULL;
 }
-/* Safe stack at function, returns NULL if the index is invalid (beyond top of stack) */
+/* Get a safe void* to the location at `idx` in stack `s` returns NULL if `s` is NULL or the index is invalid (beyond top of stack) */
 inline void *wrm_Stack_at(wrm_Stack *s, wrm_Handle idx)
 {
     return wrm_Stack_offsetAt(s, idx, 0);
@@ -192,50 +193,30 @@ void wrm_Stack_delete(wrm_Stack *p, void (*delete)(void *element));
 /* Initializes a tree off of a source pool/stack */
 bool wrm_Tree_init(wrm_Tree *tree, void *source, u32 type, size_t tn_offset, size_t child_limit);
 /* Wrapper over stack and pool access functions for genericity */
-inline void *wrm_Tree_offsetAt(wrm_Tree *tree, u32 idx, size_t offset)
+inline void *wrm_Tree_at(wrm_Tree *tree, u32 idx)
 {
     if(!tree || !tree->src ) { return NULL; }
     switch(tree->src_type) {
         case WRM_STACK:
-            return wrm_Stack_offsetAt((wrm_Stack*)tree->src, idx, offset);
+            return wrm_Stack_offsetAt((wrm_Stack*)tree->src, idx, tree->node_offset);
         case WRM_POOL:
-            return wrm_Pool_offsetAt((wrm_Pool*)tree->src, idx, offset);
+            return wrm_Pool_offsetAt((wrm_Pool*)tree->src, idx, tree->node_offset);
         default:
             return NULL;
     }
 }
-/* 
-Associates a child and parent, if possible 
-`src` is the pool that parent and child are both indices into
-`child_lists` is the auxiliary pool that stores lists of children; the maximum size of a child list is implicitly taken from this
-`tn_offset` is the offset of the Tree_Node struct within whatever elements the tree is made of
-*/
+/* Associates a child and parent, if possible */
 bool wrm_Tree_addChild(wrm_Tree *tree, u32 parent, u32 child);
-/* 
-Dissociates a child and parent, if possible 
-`src` is the pool that parent and child are both indices into
-`child_lists` is the auxiliary pool that stores lists of children; the maximum size of a child list is implicitly taken from this
-`tn_offset` is the offset of the Tree_Node struct within whatever elements the tree is made of
-*/
+/* Dissociates a child and parent, if possible */
 bool wrm_Tree_removeChild(wrm_Tree *tree, u32 parent, u32 child);
-/* 
-Checks whether the parent has `child` in its child list
-`src` is the pool that parent and child are both indices into
-`child_lists` is the auxiliary pool that stores lists of children
-`tn_offset` is the offset of the Tree_Node structure within whatever elements the tree is made of
-*/
+/* Checks whether the parent has `child` in its child list */
 bool wrm_Tree_hasChild(wrm_Tree *tree, u32 parent, u32 child);
-/* 
-Checks whether the parent has `child` in its child list
-`src` is the pool that parent and child are both indices into
-`child_lists` is the auxiliary pool that stores lists of children
-`tn_offset` is the offset of the Tree_Node structure within whatever elements the tree is made of
-*/
-void wrm_Tree_makeRoot(wrm_Tree *tree, u32 node);
-/*
-Dissociates all nodes and frees the lists of children
-*/
+/* Makes a node a root in the tree: if it has a parent, orphan it */
+bool wrm_Tree_makeRoot(wrm_Tree *tree, u32 node);
+/* Dissociates all nodes and frees the lists of children */
 void wrm_Tree_delete(wrm_Tree *tree);
+/* print the contents of the tree node */
+void wrm_Tree_debugNode(wrm_Tree_Node *tn, wrm_Tree *tree);
 
 
 

@@ -22,8 +22,8 @@ wrm_Option_Handle wrm_Pool_getSlot(wrm_Pool *p)
         if(!(p->auto_reserve && wrm_Pool_reserve(p, p->cap * WRM_MEMORY_GROWTH_FACTOR))) {
             return OPTION_NONE(Handle);
         }
-        p->cap *= WRM_MEMORY_GROWTH_FACTOR;
         p->is_used[p->used] = true;
+        memset(wrm_Pool_at(p, p->used), 0, p->element_size); // clear any prior data to zero
         return OPTION_SOME(Handle, p->used++);
     }
 
@@ -31,6 +31,7 @@ wrm_Option_Handle wrm_Pool_getSlot(wrm_Pool *p)
     while(p->is_used[i]) { i++; }
     p->is_used[i] = true;
     p->used++;
+    memset(wrm_Pool_at(p, i), 0, p->element_size);
     return OPTION_SOME(Handle, i);
 }
 

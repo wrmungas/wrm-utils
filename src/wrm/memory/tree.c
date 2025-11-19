@@ -1,25 +1,26 @@
 #include "wrm/memory.h"
 
 
-
-bool wrm_Tree_init(wrm_Tree *tree, void *src, u32 type, size_t tn_offset, size_t child_limit)
+bool wrm_Tree_init(wrm_Tree *tree, void *src, u32 type, size_t node_offset, size_t child_limit)
 {
     if(!tree || !src) { return false; }
 
+    tree->src_type = type;
+    tree->src = src;
     size_t capacity;
     bool auto_reserve;
     switch(type) {
         case WRM_STACK:
             wrm_Stack *s = src;
 
-            if(tn_offset > s->element_size - sizeof(wrm_Tree_Node)) { return false; }
+            if(node_offset > s->element_size - sizeof(wrm_Tree_Node)) { return false; }
             capacity = s->cap;
-            auto_reserve = s->auto_reserve;
+            auto_reserve = s->auto_reserve;     
             break;
         case WRM_POOL:
             wrm_Pool *p = src;
 
-            if(tn_offset > p->element_size - sizeof(wrm_Tree_Node)) { return false; }
+            if(node_offset > p->element_size - sizeof(wrm_Tree_Node)) { return false; }
             capacity = p->cap;
             auto_reserve = p->auto_reserve;
             break;
@@ -28,11 +29,11 @@ bool wrm_Tree_init(wrm_Tree *tree, void *src, u32 type, size_t tn_offset, size_t
     }
 
     tree->child_limit = child_limit;
-    tree->tn_offset = tn_offset;
+    tree->node_offset = node_offset;
 
     if(!wrm_Pool_init(&tree->child_lists, capacity, child_limit * sizeof(u32), auto_reserve)) {
         return false;
-    }
+    } 
 
     return true;
 }
@@ -40,8 +41,8 @@ bool wrm_Tree_init(wrm_Tree *tree, void *src, u32 type, size_t tn_offset, size_t
 bool wrm_Tree_hasChild(wrm_Tree *tree, u32 parent, u32 child)
 {
     if(!tree) { return false; }
-    wrm_Tree_Node *p = wrm_Tree_offsetAt(tree, parent, tree->tn_offset);
-    wrm_Tree_Node *c = wrm_Tree_offsetAt(tree, child, tree->tn_offset);
+    wrm_Tree_Node *p = wrm_Tree_at(tree, parent);
+    wrm_Tree_Node *c = wrm_Tree_at(tree, child);
     
     // ensure parent and child exist in src
     if(!p || !c) {
@@ -59,33 +60,33 @@ bool wrm_Tree_hasChild(wrm_Tree *tree, u32 parent, u32 child)
     return false;
 }
 
-void wrm_Tree_makeRoot(wrm_Tree *tree, u32 node)
+bool wrm_Tree_makeRoot(wrm_Tree *tree, u32 node)
 {
-    if(!tree) { return; }
-    wrm_Tree_Node *n = wrm_Tree_offsetAt(tree->src, node, tree->tn_offset);
-    if(!n) { return; }
+    if(!tree) { return false; }
+    wrm_Tree_Node *n = wrm_Tree_at(tree, node);
+    if(!n) { return false; }
 
     // if n has a parent, orphan it
-    if(!n->root) {
-        if(wrm_Tree_hasChild(tree, n->parent, node)) {
-            wrm_Tree_removeChild(tree, n->parent, node);
-        }
-        n->root = true;
+
+    if(n->has_parent && wrm_Tree_hasChild(tree, n->parent, node)) {
+        return wrm_Tree_removeChild(tree, n->parent, node);
     }
+    n->has_parent = false;
+    return true;
 }
 
 bool wrm_Tree_addChild(wrm_Tree *tree, u32 parent, u32 child)
 {
     if(!tree) { return false; }
-    wrm_Tree_Node *p = wrm_Tree_offsetAt(tree, parent, tree->tn_offset);
-    wrm_Tree_Node *c = wrm_Tree_offsetAt(tree, child, tree->tn_offset);
+    wrm_Tree_Node *p = wrm_Tree_at(tree, parent);
+    wrm_Tree_Node *c = wrm_Tree_at(tree, child);
 
     // ensure parent and child exist in src
     if(!p || !c) {
         return false;
     }
 
-    if(!c->root) { // if child tree node is not a root, it already has a parent: must dissociate those properly first
+    if(c->has_parent) { // if child tree node already has a parent, must dissociate those properly first
         return false;
     }
     // ensure parent does not already have child and has room for it
@@ -95,11 +96,11 @@ bool wrm_Tree_addChild(wrm_Tree *tree, u32 parent, u32 child)
 
 
     c->parent = parent;
+    c->has_parent = true;
 
     if(p->child_count == 0) {
         p->child_count++;
         p->children = child;
-        c->root = false;
         return true;
     }
 
@@ -115,7 +116,7 @@ bool wrm_Tree_addChild(wrm_Tree *tree, u32 parent, u32 child)
         children[0] = tmp;
     }
     else {
-        u32 *children = wrm_Pool_at(&tree->child_lists, p->children);
+        children = wrm_Pool_at(&tree->child_lists, p->children);
     }
 
     children[p->child_count++] = child;
@@ -125,8 +126,8 @@ bool wrm_Tree_addChild(wrm_Tree *tree, u32 parent, u32 child)
 bool wrm_Tree_removeChild(wrm_Tree *tree, u32 parent, u32 child)
 {
     if(!tree) { return false; }
-    wrm_Tree_Node *p = wrm_Tree_offsetAt(tree, parent, tree->tn_offset);
-    wrm_Tree_Node *c = wrm_Tree_offsetAt(tree, child, tree->tn_offset);
+    wrm_Tree_Node *p = wrm_Tree_at(tree, parent);
+    wrm_Tree_Node *c = wrm_Tree_at(tree, child);
 
     // ensure parent and child exist in src
     if(!p || !c) {
@@ -138,13 +139,13 @@ bool wrm_Tree_removeChild(wrm_Tree *tree, u32 parent, u32 child)
     }
 
     // cannot remove if child and parent are not already associated
-    if(!wrm_Tree_hasChild(tree, parent, child) || c->root) {
+    if(!wrm_Tree_hasChild(tree, parent, child) || !c->has_parent) {
         return false; 
     }
     
     if(p->child_count == 1) {
-        p->child_count == 0;
-        c->root = true;
+        p->child_count = 0;  
+        c->has_parent = false;  
         return true;
     }
 
@@ -160,8 +161,8 @@ bool wrm_Tree_removeChild(wrm_Tree *tree, u32 parent, u32 child)
     }
 
     // dissociate, shift child list data over
-    c->root = true;
     p->child_count--;
+    c->has_parent = false;
     while(idx < p->child_count) {
         children[idx] = children[idx + 1];
         idx++;
@@ -183,10 +184,32 @@ void wrm_Tree_delete(wrm_Tree *tree)
     wrm_Pool_delete(&tree->child_lists, NULL); // no special cleanup needed
     tree->src = NULL;
     tree->child_limit = 0;
-    tree->tn_offset = 0;
+    tree->node_offset = 0;
+}
+
+void wrm_Tree_debugNode(wrm_Tree_Node *tn, wrm_Tree *tree) {
+    if(!tn) return;
+    printf("{ has_parent: %s, ", tn->has_parent ? "true" : "false");
+
+    if(tn->has_parent) {
+        printf("parent: %u, ", tn->parent);
+    }
+    printf("child_count: %u", tn->child_count);
+    if(tn->child_count > 0) {
+       printf(", children: %u", tn->children);
+    }
+    if(tn->child_count > 1) {
+        u32 *children = wrm_Pool_at(&tree->child_lists, tn->children);
+        printf("{ ");
+        for(u8 i = 0; i < tn->child_count; i++) {
+            printf("%u ", children[i]);
+        }
+        printf("}");
+    }
+    printf(" }");
 }
 
 // ensure compiler emits symbol
 
-void *wrm_Tree_offsetAt(wrm_Tree *tree, u32 idx, size_t offset);
+void *wrm_Tree_at(wrm_Tree *tree, u32 idx);
 

@@ -23,7 +23,7 @@ OBJS = $(patsubst %.c,$(OBJ_DIR)/%.o,$(SRCS))
 TEST_SRCS = $(shell find $(TEST_DIR) -name '*.c')
 TEST_OBJS = $(patsubst %,$(OBJ_DIR)/%,$(TEST_SRCS))
 
-TEST_NAMES = test-render test-menu
+TEST_NAMES = test-render test-menu test-memory
 TESTS = $(patsubst %,$(BIN_DIR)/%,$(TEST_NAMES))
 
 # compiler variables

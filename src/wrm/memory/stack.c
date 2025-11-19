@@ -4,6 +4,7 @@ bool wrm_Stack_init(wrm_Stack *s, size_t capacity, size_t element_size, bool aut
 {
     if(!s) return false;
 
+    s->len = 0;
     s->cap = capacity;
     s->element_size = element_size;
     s->data = calloc(capacity, element_size);
@@ -14,7 +15,7 @@ bool wrm_Stack_init(wrm_Stack *s, size_t capacity, size_t element_size, bool aut
 
 bool wrm_Stack_reserve(wrm_Stack *s, size_t capacity)
 {
-    if(capacity < s->cap) return false;
+    if(!s || capacity < s->cap) return false;
 
     void *temp = realloc(s->data, capacity * s->element_size);
     if(!temp) { return false; }
@@ -25,7 +26,7 @@ bool wrm_Stack_reserve(wrm_Stack *s, size_t capacity)
 
 bool wrm_Stack_shrink(wrm_Stack *s, size_t capacity)
 {
-    if(capacity > s->cap || capacity < s->len) return false;
+    if(!s || capacity > s->cap || capacity < s->len) return false;
 
     void *temp = realloc(s->data, capacity * s->element_size);
     if(!temp) { return false; }
@@ -36,6 +37,7 @@ bool wrm_Stack_shrink(wrm_Stack *s, size_t capacity)
 
 wrm_Option_Handle wrm_Stack_push(wrm_Stack *s)
 {
+    if(!s) return OPTION_NONE(Handle);
     if(s->len == s->cap) {
         if(!(s->auto_reserve && wrm_Stack_reserve(s, s->cap * WRM_MEMORY_GROWTH_FACTOR))) { 
             return OPTION_NONE(Handle);
@@ -64,4 +66,5 @@ void wrm_Stack_delete(wrm_Stack *s, void (*delete)(void *element))
 // force the compiler to emit a symbol
 
 void wrm_Stack_reset(wrm_Stack *s, size_t len);
+void *wrm_Stack_offsetAt(wrm_Stack *s, wrm_Handle idx, size_t offset);
 void *wrm_Stack_at(wrm_Stack *s, wrm_Handle idx);
