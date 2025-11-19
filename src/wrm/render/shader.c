@@ -75,8 +75,9 @@ wrm_Option_Handle wrm_render_createShader(const char *vert_text, const char *fra
         if (tex_uniform != -1) {
             glUniform1i(tex_uniform, 0); // Assumes all your textured shaders use GL_TEXTURE0: can later extend to use multiple textures
         }
-        glUseProgram(0); // Optional: Unbind the program
     }
+
+    glUseProgram(0); // Optional: Unbind the program
 
     return pool_result;
 }

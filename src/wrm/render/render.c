@@ -81,7 +81,9 @@ Helpers (internal to just this file)
 // initializes the internal renderer resource pools
 static void wrm_render_initLists(void);
 // sets the GL state before a draw call
-static void wrm_render_drawModel(wrm_render_Data *curr, wrm_render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed);
+static void wrm_render_updateGLState(wrm_render_Data *curr, wrm_render_Data *prev, u32 *count, GLenum *mode, bool *indexed);
+// draws a model from the given render data
+static void wrm_render_drawModel(wrm_render_Data *draw_data, mat4 view, mat4 persp, u32 count, GLenum mode, bool indexed);
 // pack position, rotation, and scale into a transform matrix
 static void wrm_render_packTransform(vec3 pos, vec3 rot, vec3 scale, mat4 transform);
 // creates a list from the pool of models, sorted by GL state changes
@@ -219,7 +221,7 @@ void wrm_render_draw(void)
     wrm_render_Data *prev = NULL;
     wrm_render_Data *curr = wrm_Stack_AT(wrm_tbd, wrm_render_Data, 0);
     u32 count = 0;
-    u32 mode = 0;
+    GLenum mode = 0;
     bool indexed = false;
 
     if(wrm_render_debug_frame) {
@@ -230,7 +232,8 @@ void wrm_render_draw(void)
     // render all the models to backbuffer
     for(int i = 0; i < wrm_tbd.len; i++) {
         if(wrm_render_debug_frame) wrm_render_printModelData(curr->src_model);
-        wrm_render_drawModel(curr, prev, view, persp, &count, &mode, &indexed);
+        wrm_render_updateGLState(curr, prev, &count, &mode, &indexed);
+        wrm_render_drawModel(curr, view, persp, count, mode, indexed);
 
         prev = curr;
         curr++;
@@ -375,7 +378,11 @@ bool wrm_render_exists(wrm_Handle h, wrm_render_Resource_Type t, const char *cal
     return result;
 }
 
+void wrm_render_setGLShader(wrm_Handle shader);
+void wrm_render_setGLTexture(wrm_Handle texture);
+
 // helpers
+
 static void wrm_render_initLists(void)
 {
     wrm_Pool_init(&wrm_shaders, WRM_RENDER_POOL_INITIAL_CAPACITY, sizeof(wrm_Shader), true);
@@ -438,28 +445,16 @@ static void wrm_render_addModelAndChildren(wrm_Handle m_handle, mat4 parent_tran
     }
 }
 
-static void wrm_render_drawModel(wrm_render_Data *curr, wrm_render_Data *prev, mat4 view, mat4 persp, u32 *count, u32 *mode, bool *indexed)
+static void wrm_render_updateGLState(wrm_render_Data *curr, wrm_render_Data *prev, u32 *count, GLenum *mode, bool *indexed)
 {
     if(!curr) return;
-    wrm_Shader *s = (wrm_Shader*)wrm_shaders.data + curr->shader;
-    
     
     if(!prev || curr->shader != prev->shader) {
-        glUseProgram(s->program);
-        GLint view_loc = glGetUniformLocation(s->program, "view");
-        if(view_loc != -1) {
-            glUniformMatrix4fv(view_loc, 1, GL_FALSE, (float*)view);
-        }
-
-        GLint persp_loc = glGetUniformLocation(s->program, "persp");
-        if(persp_loc != -1) {
-            glUniformMatrix4fv(persp_loc, 1, GL_FALSE, (float*)persp);
-        }
+        wrm_render_setGLShader(curr->shader);
     }
     
     if(!prev || curr->texture != prev->texture) {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, ((wrm_Texture*)wrm_textures.data)[curr->texture].gl_tex);
+        wrm_render_setGLTexture(curr->texture);
     }
 
     if(!prev || curr->mesh != prev->mesh) {
@@ -470,17 +465,25 @@ static void wrm_render_drawModel(wrm_render_Data *curr, wrm_render_Data *prev, m
         *mode = m->mode;
         *indexed = m->ebo;
     }
-    
-    GLint model_loc = glGetUniformLocation(s->program, "model");
-    if(model_loc != -1) {
-        glUniformMatrix4fv(model_loc, 1, GL_FALSE, (float*)curr->transform);
+}
+
+void wrm_render_drawModel(wrm_render_Data *draw_data, mat4 view, mat4 persp, u32 count, GLenum mode, bool indexed)
+{
+    GLint mvp_loc = glGetUniformLocation(wrm_Pool_AT(wrm_shaders, wrm_Shader, draw_data->shader)->program, "mvp");
+    if(mvp_loc != -1) {
+        // calculate MVP matrix
+        mat4 mvp;
+        glm_mat4_copy(draw_data->transform, mvp); // model first
+        glm_mat4_mul(view, mvp, mvp);
+        glm_mat4_mul(persp, mvp, mvp);
+        glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, (float*)mvp);
     }
 
-    if(*indexed) {
-        glDrawElements(*mode, *count, GL_UNSIGNED_INT, NULL);
+    if(indexed) {
+        glDrawElements(mode, count, GL_UNSIGNED_INT, NULL);
     }
     else {
-        glDrawArrays(*mode, 0, *count);
+        glDrawArrays(mode, 0, count);
     }
 }
 
@@ -489,7 +492,6 @@ static void wrm_render_packTransform(vec3 pos, vec3 rot, vec3 scale, mat4 transf
     glm_mat4_identity(transform);
     glm_translate(transform, pos);
     
-
     vec3 as_rad = {glm_rad(rot[0]), glm_rad(rot[1]), glm_rad(rot[2])};
     
     //TODO: need to convert deg->rad, then ensure this is the rotation order I actually want (Y->X->Z, yaw->pitch->roll)
@@ -500,8 +502,6 @@ static void wrm_render_packTransform(vec3 pos, vec3 rot, vec3 scale, mat4 transf
     glm_rotate_y(transform, as_rad[WRM_YAW], transform);
     glm_rotate_z(transform, as_rad[WRM_PITCH], transform);
     glm_rotate_x(transform, as_rad[WRM_ROLL], transform);
-
-    
 
     glm_scale(transform, scale);
 }

@@ -43,7 +43,7 @@ typedef struct wrm_Mesh {
     GLuint col_vbo;
     GLuint ebo;
     size_t count;
-    GLuint mode;
+    GLenum mode;
     bool cw;
 } wrm_Mesh;
 
@@ -188,4 +188,22 @@ creates a GL vertex buffer object (VBO)
 `values_per_entry` is how many (assumed to be float) values there are for each entry (2 for vec2, 3 for vec3, etc)
 */
 void wrm_render_createVBO(GLuint *vbo, u32 attr_loc, size_t num_entries, size_t values_per_entry, const void *data, GLenum usage);
+
+/* Inline functions to Set GL state */
+
+// Sets the GL shader program to the given WRM shader, if valid 
+inline void wrm_render_setGLShader(wrm_Handle shader)
+{
+    if(shader < wrm_shaders.cap && wrm_shaders.is_used[shader]) {
+        glUseProgram(wrm_Pool_AT(wrm_shaders, wrm_Shader, shader)->program);
+    }
+}
+// sets the GL texture to the given WRM texture, if valid
+inline void wrm_render_setGLTexture(wrm_Handle texture)
+{
+    if(texture < wrm_textures.cap && wrm_textures.is_used[texture]) {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, wrm_Pool_AT(wrm_textures, wrm_Texture, texture)->gl_tex);
+    }
+}
 
