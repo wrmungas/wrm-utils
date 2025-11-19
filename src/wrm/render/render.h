@@ -56,13 +56,9 @@ typedef struct wrm_Model {
     wrm_Handle texture; // only used when the model has a textured mesh; for now, meshes only use a single texture
     wrm_Handle shader;
 
-    wrm_Handle parent;
-    u8 child_count;
-    wrm_Handle children[WRM_MODEL_CHILD_LIMIT];
-
+    wrm_Tree_Node tree_node; // tree node for model hierarchy
     bool show_children;
     bool is_visible;
-    bool is_ui; // whether the model should be rendered as part of the 3d pass or the 2d pass
 } wrm_Model;
 
 // camera data
@@ -149,6 +145,8 @@ extern wrm_Pool wrm_shaders;
 extern wrm_Pool wrm_meshes;
 extern wrm_Pool wrm_textures;
 extern wrm_Pool wrm_models;
+
+extern wrm_Tree wrm_model_tree;
 
 extern wrm_Camera wrm_camera;
 

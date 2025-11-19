@@ -271,16 +271,16 @@ bool wrm_render_updateMesh(wrm_Handle mesh, const wrm_Mesh_Data *data)
     return true;
 }
 
-void wrm_render_printMeshData(wrm_Handle mesh)
+void wrm_render_debugMesh(wrm_Handle mesh)
 {
     if(!wrm_render_exists(mesh, WRM_RENDER_RESOURCE_MESH, "printMeshData()", "")) return;
 
     wrm_Mesh *m = wrm_Pool_at(&wrm_meshes, mesh);
     printf(
-        "[%u]: {\n"
-        "  format: { tex: %s, col: %s, per_pos: %u },\n"
-        "  vao: %u, pos_vbo: %u, col_vbo: %u, uv_vbo: %u,\n"
-        "  ebo: %u, count: %zu, cw: %s, mode: %u }\n", 
+        "[%u]:\n "
+        "{ format: { tex: %s, col: %s, per_pos: %u }, "
+        "vao: %u, pos_vbo: %u, col_vbo: %u, uv_vbo: %u, "
+        "ebo: %u, count: %zu, cw: %s, mode: %u }\n", 
         mesh,
         m->format.tex ? "true" : "false", 
         m->format.col ? "true" : "false",

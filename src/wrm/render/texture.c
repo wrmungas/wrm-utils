@@ -78,7 +78,7 @@ bool wrm_render_updateTexture(wrm_Handle texture, wrm_Texture_Data *data, u32 x,
     return true;
 }
 
-void wrm_render_printTextureData(wrm_Handle texture)
+void wrm_render_debugTexture(wrm_Handle texture)
 {
     if(!wrm_render_exists(texture, WRM_RENDER_RESOURCE_TEXTURE, "printTextureData()", "")) return;
     wrm_Texture *t = wrm_Pool_at(&wrm_textures, texture);

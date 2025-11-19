@@ -193,14 +193,14 @@ SDL_Window *wrm_render_getWindow(void);
 /* Updates renderer on a window resize event */
 void wrm_render_onWindowResize(void);
 /* Prints debug info about current render state to standard output */
-void wrm_render_printDebugData(void);
+void wrm_render_debugFrame(void);
 
 // shader-related
 
 /* Creates a shader program using the given shader source strings */
 wrm_Option_Handle wrm_render_createShader(const char *vert, const char *frag, wrm_render_Format format);
 /* For debugging; prints a shader's data to `stdout` */
-void wrm_render_printShaderData(wrm_Handle shader);
+void wrm_render_debugShader(wrm_Handle shader);
 /* 
 Removes a shader and its associated resources 
 Called internally when shader creation fails and by wrm_render_quit() to free all render resources
@@ -215,7 +215,7 @@ wrm_Option_Handle wrm_render_createTexture(const wrm_Texture_Data *data);
 /* Update part of a texture from the given x and y offset with the given data */
 bool wrm_render_updateTexture(wrm_Handle texture, wrm_Texture_Data *data, u32 x, u32 y);
 /* For debugging; prints a stexture's data to `stdout` */
-void wrm_render_printTextureData(wrm_Handle texture);
+void wrm_render_debugTexture(wrm_Handle texture);
 /* 
 Removes a texture and its associated resources 
 Called internally when texture creation fails and by wrm_render_quit() to free all render resources
@@ -232,7 +232,7 @@ wrm_Option_Handle wrm_render_cloneMesh(wrm_Handle mesh);
 /* Updates a mesh's data: IMPORTANT: ALL models using this mesh will now use the updated version */
 bool wrm_render_updateMesh(wrm_Handle mesh, const wrm_Mesh_Data *data);
 /* For debugging; prints a mesh's data to `stdout` */
-void wrm_render_printMeshData(wrm_Handle mesh);
+void wrm_render_debugMesh(wrm_Handle mesh);
 /* 
 Removes a mesh and its associated resources 
 Called internally when mesh creation fails and by wrm_render_quit() to free all render resources
@@ -263,7 +263,7 @@ wrm_Option_Handle wrm_render_createTestTriangle(void);
 /* creates a default error-textured test cube - for testing */
 wrm_Option_Handle wrm_render_createTestCube(void);
 /* For debugging; prints a model's data to `stdout` */
-void wrm_render_printModelData(wrm_Handle model);
+void wrm_render_debugModel(wrm_Handle model);
 /* 
 Removes a model (BUT NOT its resources - these may be in use by other models)
 Called internally when model creation fails and by wrm_render_quit() to free all render resources
@@ -280,7 +280,7 @@ void wrm_render_updateCamera(float *fov, float *offset, const vec3 pos, const ve
 /* Gets the render's camera data, stores results in the provided pointers */
 void wrm_render_getCameraData(float *fov, float *offset, vec3 pos, vec3 rot);
 /* print debug information about the camera */
-void wrm_render_printCameraData(void);
+void wrm_render_debugCamera(void);
 
 
 

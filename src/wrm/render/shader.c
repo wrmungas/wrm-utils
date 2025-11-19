@@ -82,16 +82,16 @@ wrm_Option_Handle wrm_render_createShader(const char *vert_text, const char *fra
     return pool_result;
 }
 
-void wrm_render_printShaderData(wrm_Handle shader)
+void wrm_render_debugShader(wrm_Handle shader)
 {
     if(!wrm_render_exists(shader, WRM_RENDER_RESOURCE_SHADER, "printShaderData()", "")) return;
     
     wrm_Shader *s = wrm_Pool_at(&wrm_shaders, shader);
 
     printf(
-        "[%u]: { \n"
-        "  format: { tex: %s, col: %s, per_pos: %u },\n"
-        "  vert: %u, frag: %u, program: %u     }\n", 
+        "[%u]: {"
+        "format: { tex: %s, col: %s, per_pos: %u }, "
+        "vert: %u, frag: %u, program: %u }\n", 
         shader,
         s->format.tex ? "true" : "false", 
         s->format.col ? "true" : "false",

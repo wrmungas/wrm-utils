@@ -259,7 +259,7 @@ void wrm_render_onWindowResize(void)
     glViewport(0, 0, wrm_window_width, wrm_window_height);
 }
 
-void wrm_render_printDebugData(void)
+void wrm_render_debugFrame(void)
 {
     wrm_render_debug_frame = true;
     printf("DEBUG: Render:\n\nINTERNAL DATA\n");
@@ -267,32 +267,32 @@ void wrm_render_printDebugData(void)
     printf("\nShaders: %zu total (memory for %zu):\n", wrm_shaders.used, wrm_shaders.cap);
     for(u32 i = 0; i < wrm_shaders.cap; i++) {
         if(wrm_shaders.is_used[i]) {
-            wrm_render_printShaderData(i);
+            wrm_render_debugShader(i);
         }
     }
 
     printf("\nTextures: %zu total (memory for %zu):\n", wrm_textures.used, wrm_textures.cap);
     for(u32 i = 0; i < wrm_textures.cap; i++) {
         if(wrm_textures.is_used[i]) {
-            wrm_render_printTextureData(i);
+            wrm_render_debugTexture(i);
         }
     }
 
     printf("\nMeshes: %zu total (memory for %zu):\n", wrm_meshes.used, wrm_meshes.cap);
     for(u32 i = 0; i < wrm_meshes.cap; i++) {
         if(wrm_meshes.is_used[i]) {
-            wrm_render_printMeshData(i);
+            wrm_render_debugMesh(i);
         }
     }
 
     printf("\nModels: %zu total (memory for %zu):\n", wrm_models.used, wrm_models.cap);
     for(u32 i = 0; i < wrm_models.cap; i++) {
         if(wrm_models.is_used[i]) {
-            wrm_render_printModelData(i);
+            wrm_render_debugModel(i);
         }
     }
 
-    wrm_render_printCameraData();
+    wrm_render_debugCamera();
 }
 
 
@@ -396,11 +396,10 @@ static void wrm_render_prepareModels(bool ui_pass)
     // clear the list
     wrm_Stack_reset(&wrm_tbd, 0);
 
-    wrm_Model *models = wrm_data_AS(wrm_models, wrm_Model);
-
     // skip model 0 (implicit parent)
     for(u32 i = 1; i < wrm_models.cap; i++) {
-        if(wrm_models.is_used[i] && !models[i].parent && models[i].is_ui == ui_pass) {
+        wrm_Model *m = wrm_Pool_at(&wrm_models, i);
+        if(m && !m->tree_node.has_parent) {
             wrm_render_addModelAndChildren(i, NULL);
         }
     }
@@ -410,21 +409,21 @@ static void wrm_render_prepareModels(bool ui_pass)
     }
 }
 
-static void wrm_render_addModelAndChildren(wrm_Handle m_handle, mat4 parent_transform)
+static void wrm_render_addModelAndChildren(wrm_Handle model, mat4 parent_transform)
 {
-    wrm_Model m = ((wrm_Model*)wrm_models.data)[m_handle];
+    wrm_Model *m = wrm_Pool_at(&wrm_models, model);
 
     wrm_render_Data data; 
-    wrm_render_packTransform(m.pos, m.rot, m.scale, data.transform);
+    wrm_render_packTransform(m->pos, m->rot, m->scale, data.transform);
     if(parent_transform) {
         glm_mat4_mul(parent_transform, data.transform, data.transform);
     }
 
-    if(m.is_visible) { 
-        data.mesh = m.mesh;
-        data.shader = m.shader;
-        data.texture = m.texture;
-        data.src_model = m_handle;
+    if(m->is_visible) { 
+        data.mesh = m->mesh;
+        data.shader = m->shader;
+        data.texture = m->texture;
+        data.src_model = model;
         wrm_Option_Handle top = wrm_Stack_push(&wrm_tbd);
         if(!top.exists) {
             wrm_error("Render", "addModelAndChildren()", "failed to allocate space on draw stack!");
@@ -433,11 +432,17 @@ static void wrm_render_addModelAndChildren(wrm_Handle m_handle, mat4 parent_tran
         memcpy(wrm_Stack_at(&wrm_tbd, top.val), &data, sizeof(data));
     }
     
-    if(!(m.child_count && m.show_children)) { return; }
+    if(!(m->tree_node.child_count && m->show_children)) { return; }
+
+    if(m->tree_node.child_count == 1) {
+        wrm_render_addModelAndChildren(m->tree_node.children, data.transform);
+        return;
+    }
 
     // add children in order
-    for(u8 i = 0; i < m.child_count; i++) {
-        wrm_render_addModelAndChildren(m.children[i], data.transform);
+    u32 *children = wrm_Pool_at(&wrm_model_tree.child_lists, m->tree_node.children);
+    for(u8 i = 0; i < m->tree_node.child_count; i++) {
+        wrm_render_addModelAndChildren(children[i], data.transform);
     }
 }
 

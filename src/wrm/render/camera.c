@@ -43,7 +43,7 @@ void wrm_render_getViewMatrix(mat4 view)
     glm_lookat(eye, target, up, view);
 }
 
-void wrm_render_printCameraData(void)
+void wrm_render_debugCamera(void)
 {
     vec3 facing;
     vec3 up;
@@ -51,10 +51,9 @@ void wrm_render_printCameraData(void)
 
     wrm_render_getOrientation(wrm_camera.rot, facing, up, right);
     printf(
-        "Camera: {\n"
-        "   pos: < %f %f %f >, rot = < %f %f %f >, fov: %f, offset: %f\n"
-        "   facing: < %f %f %f >, up: < %f %f %f >, right: < %f %f %f >"
-        "}\n",
+        "Camera:\n"
+        "{ pos: <%f %f %f>, rot = <%f %f %f>, fov: %f, offset: %f, "
+        "facing: <%f %f %f>, up: <%f %f %f>, right: <%f %f %f> }\n",
         wrm_camera.pos[WRM_X], wrm_camera.pos[WRM_Y], wrm_camera.pos[WRM_Z],
         wrm_camera.rot[WRM_ROLL], wrm_camera.rot[WRM_YAW], wrm_camera.rot[WRM_PITCH],
         wrm_camera.fov, wrm_camera.offset,

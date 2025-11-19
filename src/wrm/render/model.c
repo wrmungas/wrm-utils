@@ -47,16 +47,8 @@ wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle 
 
     wrm_Model* model = wrm_Pool_at(&wrm_models, result.val);
 
-    // explicitly zero-initialize children;
-    model->child_count = 0;
-    for(u8 i = 0; i < WRM_MODEL_CHILD_LIMIT; i++) {
-        model->children[i] = 0;
-    }
-    model->is_ui = data->is_ui;
-    model->is_visible = data->is_visible;
-    model->show_children = true;
-
-    if(model->is_ui) { wrm_ui_count++; }
+    // explicitly zero-initialize tree node
+    model->tree_node = (wrm_Tree_Node){ 0 };
 
     return result;
 }
@@ -138,113 +130,36 @@ bool wrm_render_setModelShader(wrm_Handle model, wrm_Handle shader)
 
 bool wrm_render_addChild(wrm_Handle parent, wrm_Handle child)
 {
-    char * caller = "addChildModel()";
-    wrm_render_Resource_Type type = WRM_RENDER_RESOURCE_MODEL;
-    if(!(wrm_render_exists(parent, type, caller, "(parent)") && wrm_render_exists(child, type, caller, "(child)"))) {
-        return false;
-    }
-
-    wrm_Model *m = wrm_data_AS(wrm_models, wrm_Model);
-
-    if(m[parent].child_count == WRM_MODEL_CHILD_LIMIT) {
-        if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot add another child to model [%u] (limit reached!)\n", parent); }
-        return false;
-    }
-
-    if(m[child].parent) {
-        if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot add parent to model [%u] (already has parent!)\n", child); }
-        return false;
-    }
-
-    for(u8 i = 0; i < m[parent].child_count; i++) {
-        if(m[parent].children[i] == child) {
-            if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot add child [%u] to model [%u] (already added!)\n", child, parent); }
-            return false;
-        }
-    }
-
-    if(parent) m[parent].children[m[parent].child_count++] = child;
-    m[child].parent = parent;
-    return true;
+    return wrm_Tree_addChild(&wrm_model_tree, parent, child);
 }
 
 bool wrm_render_removeChild(wrm_Handle parent, wrm_Handle child)
 {
-    char * caller = "removeChildModel()";
-    wrm_render_Resource_Type type = WRM_RENDER_RESOURCE_MODEL;
-    if(!(wrm_render_exists(parent, type, caller, "(parent)") && wrm_render_exists(child, type, caller, "(child)"))) {
-        return false;
-    }
-
-    wrm_Model *m = wrm_data_AS(wrm_models, wrm_Model);
-
-    if(m[parent].child_count == 0) {
-        if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot remove child from model [%u] (has no children!)\n", parent); }
-        return false;
-    }
-
-    if(!m[child].parent) {
-        if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot remove parent from model [%u] (has no parent!)\n", child); }
-        return false;
-    }
-
-    if(m[child].parent != parent) {
-        if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot remove parent [%u] from model [%u] (has a different parent!)\n", parent, child); }
-        return false;
-    }   
-    
-    // find the child
-    u8 idx;
-    for(idx = 0; idx < m[parent].child_count; idx++) {
-        if(m[parent].children[idx] == child) break;
-    }
-    if(idx == WRM_MODEL_CHILD_LIMIT) {
-        if(wrm_render_settings.errors) { fprintf(stderr, "ERROR: Render: cannot remove child [%u] from model [%u] (already removed!)\n", child, parent); }
-        return false;
-    }
-
-    m[child].parent = 0;
-
-    m[parent].children[idx] = 0;
-    m[parent].child_count--;
-    
-    while(idx < m[parent].child_count) {
-        m[parent].children[idx] = m[parent].children[idx + 1];
-        idx++;
-    }
-    m[parent].children[idx] = 0;
-    return true;
+    return wrm_Tree_removeChild(&wrm_model_tree, parent, child);
 }
 
-void wrm_render_printModelData(wrm_Handle model)
+void wrm_render_debugModel(wrm_Handle model)
 {
     if(!wrm_render_exists(model, WRM_RENDER_RESOURCE_MODEL, "printModelData()", "")) return;
 
-    wrm_Model *m = wrm_data_at(wrm_models, model);
+    wrm_Model *m = wrm_Pool_at(&wrm_models, model);
     printf(
-        "[%u]: { \n"
-        "   shader: %u, texture: %u, mesh: %u, is_ui: %s, is_visible: %s,\n"
-        "   pos: < %.2f %.2f %.2f >, rot: < %.2f %.2f %.2f >, scale: < %.2f %.2f %.2f >\n"
-        "   parent: %u, child_count: %u, show_children: %s,\n"
-        "   children: [ "
+        "[%u]:\n { shader: %u, texture: %u, mesh: %u, is_visible: %s, show_children: %s, "
+        "pos: < %.2f %.2f %.2f >, rot: < %.2f %.2f %.2f >, scale: < %.2f %.2f %.2f >, tree_node:"
         , 
         model, 
         m->shader,
         m->texture,
         m->mesh,
-        m->is_ui ? "true" : "false",
         m->is_visible ? "true" : "false",
+        m->show_children ? "true" : "false",
         m->pos[0], m->pos[1], m->pos[2],
         m->rot[0], m->rot[1], m->rot[2],
-        m->scale[0], m->scale[1], m->scale[2],
-        m->parent,
-        m->child_count,
-        m->show_children ? "true" : "false"
+        m->scale[0], m->scale[1], m->scale[2]
     );
-    for(u8 j = 0; j < WRM_MODEL_CHILD_LIMIT; j++) {
-        printf("%u, ", m->children[j]);
-    }
-    printf("]   }\n");
+
+    wrm_Tree_debugNode(&m->tree_node, &wrm_model_tree);
+    printf("}\n");
 }
 
 void wrm_render_deleteModel(wrm_Handle model)
