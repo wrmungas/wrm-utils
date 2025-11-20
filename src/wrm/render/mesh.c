@@ -192,6 +192,7 @@ wrm_Option_Handle wrm_render_createMesh(const wrm_Mesh_Data *data)
         .col_vbo = 0,
         .uv_vbo = 0,
         .ebo = 0,
+        .transparent = data->transparent,
         .cw = data->cw,
         .mode = data->mode,
         .count = data->idx_cnt,

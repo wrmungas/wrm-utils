@@ -145,6 +145,7 @@ struct wrm_Texture_Data {
     u32 width; // width of the texture, in pixels
     u32 height; // height of the texture, in pixels
     u32 channels; // number of channels of pixel data (should be 4, 3, or 1)
+    bool transparent;
 };
 
 struct wrm_Mesh_Data {
@@ -158,6 +159,7 @@ struct wrm_Mesh_Data {
     u32 mode;
     bool cw;                // does the mesh use a clockwise winding order?
     bool dynamic;           // will we be frequently updating this mesh?
+    bool transparent;       // if the mesh has colors, is the alpha anything other than 1 ?
 };
 
 struct wrm_Model_Data { 
@@ -169,8 +171,7 @@ struct wrm_Model_Data {
     wrm_Handle mesh;
     wrm_Handle texture; // only used when the model has a textured mesh; for now, meshes only use a single texture
     wrm_Handle shader;
-    bool is_visible;
-    bool is_ui; // whether to draw as part of the UI or not
+    bool shown;
 };
 
 // default shaders - initialized within `render_init()`
@@ -243,7 +244,7 @@ void wrm_render_deleteMesh(wrm_Handle mesh);
 // model-related
 
 /* Create a model - if use_default_shader is true, the renderer will attempt to select a default shader based on the mesh attributes */
-wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle parent, bool use_default_shader);
+wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle *parent, bool use_default_shader);
 /* Sets the given model's transform to the argument values, ignoring any NULL arguments */
 bool wrm_render_setModelTransform(wrm_Handle model, const vec3 pos, const vec3 rot, const vec3 scale);
 /* Adds the argument values to the given model's transform, ignoring any NULL arguments */
@@ -254,6 +255,10 @@ bool wrm_render_setModelMesh(wrm_Handle model, wrm_Handle mesh);
 bool wrm_render_setModelTexture(wrm_Handle model, wrm_Handle texture);
 /* Set a model's shader - checks for compatibility with the model's mesh */
 bool wrm_render_setModelShader(wrm_Handle model, wrm_Handle shader);
+/* Toggle model visibility */
+void wrm_render_setModelShown(wrm_Handle model, bool shown);
+/* Toggle visibility of model's children */
+void wrm_render_setChildrenShown(wrm_Handle model, bool shown);
 /* Associates models `child` and `parent` as such */
 bool wrm_render_addChild(wrm_Handle parent, wrm_Handle child);
 /* Orphans model `child` from `parent` */

@@ -3,7 +3,7 @@
 
 // user-visible
 
-wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle parent, bool use_default_shader)
+wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle *parent, bool use_default_shader)
 {
     wrm_Option_Handle result = wrm_Pool_getSlot(&wrm_models);
 
@@ -13,11 +13,12 @@ wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle 
         if(wrm_render_settings.errors) { wrm_error("Render", caller, "failed to create model\n"); }
         return result;
     }
+    wrm_Handle model = result.val;
 
     bool has_resources = 
-        (!parent || wrm_render_exists(parent, WRM_RENDER_RESOURCE_MODEL, caller, "(parent)")) &&
-        wrm_render_exists(data->mesh, WRM_RENDER_RESOURCE_MESH, caller, "") &&
-        wrm_render_exists(data->texture, WRM_RENDER_RESOURCE_TEXTURE, caller, "");
+        (!parent || wrm_Pool_isValid(&wrm_models, *parent)) &&
+        wrm_Pool_isValid(&wrm_meshes, data->mesh) &&
+        wrm_Pool_isValid(&wrm_textures, data->texture);
     
     if(!has_resources) {
         wrm_Pool_freeSlot(&wrm_models, result.val);
@@ -31,24 +32,25 @@ wrm_Option_Handle wrm_render_createModel(const wrm_Model_Data *data, wrm_Handle 
             wrm_Pool_freeSlot(&wrm_models, result.val);
             return OPTION_NONE(Handle);
         }
+        shader = default_shader.val;
     }
 
+    wrm_Model* m = wrm_Pool_at(&wrm_models, result.val);
+    m->tree_node = (wrm_Tree_Node){ 0 };
+    m->shown = data->shown;
+    m->children_shown = true;
+
     bool update_success = 
-        wrm_render_setModelShader(result.val, shader) && 
-        wrm_render_setModelMesh(result.val, data->mesh) && 
-        wrm_render_setModelTexture(result.val, data->texture) &&
-        wrm_render_setModelTransform(result.val, data->pos, data->rot, data->scale) &&
-        (!parent || wrm_render_addChild(parent, result.val));
+        wrm_render_setModelShader(model, shader) && 
+        wrm_render_setModelMesh(model, data->mesh) && 
+        wrm_render_setModelTexture(model, data->texture) &&
+        wrm_render_setModelTransform(model, data->pos, data->rot, data->scale) &&
+        (!parent || wrm_render_addChild(*parent, model));
 
     if(!update_success) {
         wrm_Pool_freeSlot(&wrm_models, result.val);
         return OPTION_NONE(Handle);
     }
-
-    wrm_Model* model = wrm_Pool_at(&wrm_models, result.val);
-
-    // explicitly zero-initialize tree node
-    model->tree_node = (wrm_Tree_Node){ 0 };
 
     return result;
 }
@@ -128,6 +130,18 @@ bool wrm_render_setModelShader(wrm_Handle model, wrm_Handle shader)
     return true;
 }
 
+void wrm_render_setModelShown(wrm_Handle model, bool shown)
+{
+    wrm_Model *m = wrm_Pool_at(&wrm_models, model);
+    if(m) m->shown = shown;
+}
+
+void wrm_render_setChildrenShown(wrm_Handle model, bool shown)
+{
+    wrm_Model *m = wrm_Pool_at(&wrm_models, model);
+    if(m) m->children_shown = shown;
+}
+
 bool wrm_render_addChild(wrm_Handle parent, wrm_Handle child)
 {
     return wrm_Tree_addChild(&wrm_model_tree, parent, child);
@@ -144,15 +158,15 @@ void wrm_render_debugModel(wrm_Handle model)
 
     wrm_Model *m = wrm_Pool_at(&wrm_models, model);
     printf(
-        "[%u]:\n { shader: %u, texture: %u, mesh: %u, is_visible: %s, show_children: %s, "
+        "[%u]:\n { shader: %u, texture: %u, mesh: %u, shown: %s, children_shown: %s, "
         "pos: < %.2f %.2f %.2f >, rot: < %.2f %.2f %.2f >, scale: < %.2f %.2f %.2f >, tree_node:"
         , 
         model, 
         m->shader,
         m->texture,
         m->mesh,
-        m->is_visible ? "true" : "false",
-        m->show_children ? "true" : "false",
+        m->shown ? "true" : "false",
+        m->children_shown ? "true" : "false",
         m->pos[0], m->pos[1], m->pos[2],
         m->rot[0], m->rot[1], m->rot[2],
         m->scale[0], m->scale[1], m->scale[2]
@@ -187,10 +201,9 @@ wrm_Option_Handle wrm_render_createTestTriangle(void)
         .mesh = mesh.val,
         .texture = 0,
         .shader = wrm_default_shaders.color,
-        .is_visible = wrm_render_settings.test,
-        .is_ui = false
+        .shown = wrm_render_settings.test,
     };
-    wrm_Option_Handle model = wrm_render_createModel(&model_data, 0, false);
+    wrm_Option_Handle model = wrm_render_createModel(&model_data, NULL, false);
     if(!model.exists) {
         if(wrm_render_settings.errors) wrm_error("Render", caller, "failed to create test triangle model");
         return model;
@@ -216,10 +229,9 @@ wrm_Option_Handle wrm_render_createTestCube(void)
         .mesh = mesh.val,
         .texture = 0,
         .shader = wrm_default_shaders.texture,
-        .is_visible = wrm_render_settings.test,
-        .is_ui = false
+        .shown = wrm_render_settings.test,
     };
-    wrm_Option_Handle model = wrm_render_createModel(&model_data, 0, false);
+    wrm_Option_Handle model = wrm_render_createModel(&model_data, NULL, false);
     if(!model.exists) {
         if(wrm_render_settings.errors) wrm_error("Render", caller, "failed to create test triangle model");
         return model;

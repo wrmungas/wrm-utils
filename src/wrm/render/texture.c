@@ -38,6 +38,7 @@ wrm_Option_Handle wrm_render_createTexture(const wrm_Texture_Data *data)
         .gl_tex = texture,
         .w = data->width,
         .h = data->height,
+        .transparent = data->transparent,
     };
 
     if(data->channels == 1) {

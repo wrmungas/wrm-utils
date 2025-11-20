@@ -12,6 +12,8 @@ typedef struct wrm_render_Data {
     wrm_Handle shader;
     wrm_Handle texture;
     wrm_Handle src_model;
+    float distance;
+    bool transparent;
 } wrm_render_Data;
 
 /*
@@ -55,6 +57,9 @@ wrm_Pool wrm_meshes;
 wrm_Pool wrm_textures;
 wrm_Pool wrm_models;
 
+
+wrm_Tree wrm_model_tree;
+
 bool wrm_show_ui;
 bool wrm_render_debug_frame;
 u32 wrm_ui_count;
@@ -78,8 +83,8 @@ wrm_Stack wrm_tbd;
 /*
 Helpers (internal to just this file)
 */
-// initializes the internal renderer resource pools
-static void wrm_render_initLists(void);
+// initializes the internal renderer memory resources
+static void wrm_render_initMemory(void);
 // sets the GL state before a draw call
 static void wrm_render_updateGLState(wrm_render_Data *curr, wrm_render_Data *prev, u32 *count, GLenum *mode, bool *indexed);
 // draws a model from the given render data
@@ -87,7 +92,7 @@ static void wrm_render_drawModel(wrm_render_Data *draw_data, mat4 view, mat4 per
 // pack position, rotation, and scale into a transform matrix
 static void wrm_render_packTransform(vec3 pos, vec3 rot, vec3 scale, mat4 transform);
 // creates a list from the pool of models, sorted by GL state changes
-static void wrm_render_prepareModels(bool ui);
+static void wrm_render_prepareModels(void);
 // adds a model and its children recursively to the TBD list
 static void wrm_render_addModelAndChildren(wrm_Handle m_handle, mat4 parent_transform);
 // compares two render data objects for sorting by GL state changes
@@ -137,7 +142,7 @@ bool wrm_render_init(const wrm_render_Settings *s, const wrm_Window_Data *data)
     if(wrm_render_settings.verbose) printf("Render: loaded GL functions\n");
 
     // setup resource lists
-    wrm_render_initLists();
+    wrm_render_initMemory();
     if(wrm_render_settings.verbose) printf("Render: created resource pools\n");
 
     // add default resources to each list: the handle value 0 refers to these
@@ -151,9 +156,6 @@ bool wrm_render_init(const wrm_render_Settings *s, const wrm_Window_Data *data)
         wrm_error("Render", "init()", "unable to create error texture!");
         return false;
     }
-    // reserve model 0 as the implicit parent model
-    wrm_Option_Handle result = wrm_Pool_getSlot(&wrm_models);
-    if(!result.exists && result.val == 0) wrm_error("Render", "init()", "failed to reserve model 0 (implicit root)");
 
     
     if(wrm_render_settings.verbose) printf("Render: created default resources\n");
@@ -198,13 +200,6 @@ void wrm_render_quit(void)
 
 void wrm_render_draw(void) 
 {
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    // clear the screen
-    glClearColor(wrm_bg_color.r, wrm_bg_color.g, wrm_bg_color.b, wrm_bg_color.a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     // handle camera and get view matrix
     mat4 view;
     wrm_render_getViewMatrix(view);
@@ -215,7 +210,7 @@ void wrm_render_draw(void)
     glm_perspective(wrm_camera.fov, aspect_ratio, WRM_NEAR_CLIP_DISTANCE, WRM_FAR_CLIP_DISTANCE, persp);
 
     // prepare a list of models for rendering
-    wrm_render_prepareModels(false);
+    wrm_render_prepareModels();
     
     // initialize GL state and tracking of changes
     wrm_render_Data *prev = NULL;
@@ -228,10 +223,14 @@ void wrm_render_draw(void)
         printf("\nFRAME DRAW DATA:\n\nMAIN (3D) PASS (%zu model%s to be drawn):\n", wrm_tbd.len, wrm_tbd.len == 1 ? "" : "s");
     }
 
+    // clear the screen
+    glClearColor(wrm_bg_color.r, wrm_bg_color.g, wrm_bg_color.b, wrm_bg_color.a);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    // render all the models to backbuffer
+    // render all the opaque models to backbuffer
     for(int i = 0; i < wrm_tbd.len; i++) {
-        if(wrm_render_debug_frame) wrm_render_printModelData(curr->src_model);
+        if(wrm_render_debug_frame) { wrm_render_debugModel(curr->src_model); }
+
         wrm_render_updateGLState(curr, prev, &count, &mode, &indexed);
         wrm_render_drawModel(curr, view, persp, count, mode, indexed);
 
@@ -379,7 +378,7 @@ void wrm_render_setGLTexture(wrm_Handle texture);
 
 // helpers
 
-static void wrm_render_initLists(void)
+static void wrm_render_initMemory(void)
 {
     wrm_Pool_init(&wrm_shaders, WRM_RENDER_POOL_INITIAL_CAPACITY, sizeof(wrm_Shader), true);
     wrm_Pool_init(&wrm_textures, WRM_RENDER_POOL_INITIAL_CAPACITY, sizeof(wrm_Texture), true);
@@ -388,23 +387,24 @@ static void wrm_render_initLists(void)
 
     wrm_Stack_init(&wrm_tbd, WRM_RENDER_LIST_INITIAL_CAPACITY, sizeof(wrm_render_Data), true);
 
+    wrm_Tree_init(&wrm_model_tree, &wrm_models, WRM_POOL, offsetof(wrm_Model, tree_node), WRM_MODEL_CHILD_LIMIT);
+
     wrm_ui_count = 0;
 }
 
-static void wrm_render_prepareModels(bool ui_pass)
+static void wrm_render_prepareModels(void)
 {
     // clear the list
     wrm_Stack_reset(&wrm_tbd, 0);
 
-    // skip model 0 (implicit parent)
-    for(u32 i = 1; i < wrm_models.cap; i++) {
+    for(u32 i = 0; i < wrm_models.cap; i++) {
         wrm_Model *m = wrm_Pool_at(&wrm_models, i);
         if(m && !m->tree_node.has_parent) {
             wrm_render_addModelAndChildren(i, NULL);
         }
     }
 
-    if(wrm_tbd.len > 1 && !ui_pass) {
+    if(wrm_tbd.len > 1) {
         qsort(wrm_tbd.data, wrm_tbd.len, sizeof(wrm_render_Data), wrm_render_compareRenderData);
     }
 }
@@ -419,11 +419,19 @@ static void wrm_render_addModelAndChildren(wrm_Handle model, mat4 parent_transfo
         glm_mat4_mul(parent_transform, data.transform, data.transform);
     }
 
-    if(m->is_visible) { 
+    if(m->shown) { 
         data.mesh = m->mesh;
         data.shader = m->shader;
         data.texture = m->texture;
         data.src_model = model;
+
+        wrm_Mesh *mesh = wrm_Pool_at(&wrm_meshes, m->mesh);
+        wrm_Texture *texture = wrm_Pool_at(&wrm_textures, m->texture);
+        data.transparent = (mesh && mesh->transparent) || (texture && texture->transparent);
+
+        if(data.transparent) {
+            data.distance = glm_vec3_distance2(m->pos, wrm_camera.pos); // only care about this if it is transparent
+        }
         wrm_Option_Handle top = wrm_Stack_push(&wrm_tbd);
         if(!top.exists) {
             wrm_error("Render", "addModelAndChildren()", "failed to allocate space on draw stack!");
@@ -432,14 +440,15 @@ static void wrm_render_addModelAndChildren(wrm_Handle model, mat4 parent_transfo
         memcpy(wrm_Stack_at(&wrm_tbd, top.val), &data, sizeof(data));
     }
     
-    if(!(m->tree_node.child_count && m->show_children)) { return; }
+    if(!(m->tree_node.child_count && m->children_shown)) { return; }
 
+    // add lone child
     if(m->tree_node.child_count == 1) {
         wrm_render_addModelAndChildren(m->tree_node.children, data.transform);
         return;
     }
 
-    // add children in order
+    // add children list
     u32 *children = wrm_Pool_at(&wrm_model_tree.child_lists, m->tree_node.children);
     for(u8 i = 0; i < m->tree_node.child_count; i++) {
         wrm_render_addModelAndChildren(children[i], data.transform);
@@ -449,6 +458,19 @@ static void wrm_render_addModelAndChildren(wrm_Handle model, mat4 parent_transfo
 static void wrm_render_updateGLState(wrm_render_Data *curr, wrm_render_Data *prev, u32 *count, GLenum *mode, bool *indexed)
 {
     if(!curr) return;
+
+    if(!prev) {
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+    }
+    if(prev && curr->transparent && !prev->transparent) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glDisable(GL_DEPTH_TEST);
+    }
     
     if(!prev || curr->shader != prev->shader) {
         wrm_render_setGLShader(curr->shader);
@@ -513,9 +535,15 @@ static void wrm_render_packTransform(vec3 pos, vec3 rot, vec3 scale, mat4 transf
 
 static int wrm_render_compareRenderData(const void *model1, const void *model2)
 {
-    const wrm_Model_Data *m1 = (wrm_Model_Data*)model1;
-    const wrm_Model_Data *m2 = (wrm_Model_Data*)model2;
+    const wrm_render_Data *m1 = (wrm_render_Data*)model1;
+    const wrm_render_Data *m2 = (wrm_render_Data*)model2;
 
+    if(m1->transparent != m2->transparent) {
+        return m1->transparent ? 1 : -1; // fully opaque models get rendered first
+    }
+    if(m1->transparent && m2->transparent) {
+        return m1->distance < m2->distance ? 1 : -1; // further back transparent models get rendered first
+    }
     if(m1->shader != m2->shader) {
         return (i64)(m1->shader) - (i64)(m2->shader);
     }

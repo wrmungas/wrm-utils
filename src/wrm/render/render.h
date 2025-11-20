@@ -29,10 +29,11 @@ typedef struct wrm_Shader {
 
 typedef struct wrm_Texture {
     GLuint gl_tex;
-    // mipmap settings?
-    // filter settings?
+    // mipmap/filter settings ?
+
     u32 w;
     u32 h;
+    bool transparent;
 } wrm_Texture;
 
 typedef struct wrm_Mesh {
@@ -45,6 +46,7 @@ typedef struct wrm_Mesh {
     size_t count;
     GLenum mode;
     bool cw;
+    bool transparent;
 } wrm_Mesh;
 
 typedef struct wrm_Model {
@@ -57,8 +59,8 @@ typedef struct wrm_Model {
     wrm_Handle shader;
 
     wrm_Tree_Node tree_node; // tree node for model hierarchy
-    bool show_children;
-    bool is_visible;
+    bool shown;
+    bool children_shown;
 } wrm_Model;
 
 // camera data
@@ -69,10 +71,7 @@ typedef struct wrm_Camera {
     vec3 rot;
 } wrm_Camera;
 
-
 DEFINE_OPTION(GLuint, GLuint);
-
-DEFINE_LIST(wrm_Model_Data, Model_Data);
 
 // resource enumeration
 typedef enum wrm_render_Resource_Type {
