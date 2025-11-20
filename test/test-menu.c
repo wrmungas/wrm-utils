@@ -53,10 +53,17 @@ int main(int argc, char **argv)
 
     if(!image.exists) wrm_fail(1, "Test", "main()", "failed to create image element");
 
+    a.width = 200;
+    a.height = 200;
+    p.alignment = a;
+    wrm_Option_Handle pane = wrm_gui_createPane(p, 0x55555555u);
+
+    if(!pane.exists) wrm_fail(1, "Test", "main()", "failed to create pane element");
+
 
     bool should_close = false;
     u32 i = 0;
-    wrm_render_printDebugData();
+    wrm_render_debugFrame();
     while(!should_close) {
         
         SDL_Event e;
@@ -75,7 +82,7 @@ int main(int argc, char **argv)
 
             wrm_gui_setAlignment(image.val, a);
 
-            wrm_render_printDebugData();
+            wrm_render_debugFrame();
         }
         
         i++;

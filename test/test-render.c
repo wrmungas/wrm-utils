@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
 
     bool should_close = false;
 
-    wrm_render_printDebugData();
+    wrm_render_debugFrame();
     while(!should_close) {
         SDL_Event e;
         while(SDL_PollEvent(&e)) {
