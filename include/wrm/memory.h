@@ -32,6 +32,7 @@ Must link with C standard library
 Type declarations
 */
 
+typedef struct wrm_Buffer wrm_Buffer;
 // represents a pool of elements
 typedef struct wrm_Pool wrm_Pool;
 // represents a continually-growing stack of elements: may be used as an arena, only reset on a manual call to reset()
@@ -46,35 +47,34 @@ Type definitions
 */
 
 struct wrm_Pool {
-    size_t element_size;
-    size_t cap;
-    size_t used;
     void *data;
-    bool *is_used;
+    size_t e_size;
+    size_t cap;
+    size_t used_cnt;
+    bool *in_use;
     bool auto_reserve;
 };
 
 struct wrm_Stack {
-    size_t element_size;
+    void *data;
+    size_t e_size;
     size_t cap;
     size_t len;
-    void *data;
     bool auto_reserve;
 };
 
 struct wrm_Tree_Node {
     u32 parent;
     u32 children;
-    u8 child_count;
+    u8 child_cnt;
     bool has_parent;
 };
 
 struct wrm_Tree {
-    enum { WRM_POOL, WRM_STACK } src_type;
-    void *src; // source pool or stack : NOT owned by the tree, and only the Tree_Nodes within are modified
+    wrm_Pool *src; // source pool: NOT owned by the tree, only the Tree_Nodes within are modified
     wrm_Pool child_lists;  // auxiliary pool of child lists: owned by the tree
-    size_t child_limit; // basically child_lists->element_size / sizeof(u32)
-    size_t node_offset; // byte offset of Tree_Node struct inside objects
+    size_t child_limit; // maximum number of children each node can have
+    size_t offset; // byte offset of Tree_Node struct inside each element contained in the source pool
 };
 
 
@@ -83,15 +83,16 @@ struct wrm_Tree {
 Function declarations
 */
 
-// pool and stack
+// generic buffer
 
-/* Type-generic data accessor macro for `mem` (NOT a pointer) and type name `t` */ 
-#define wrm_data_AS(mem, t) ((t*)((mem).data))
+#define wrm_data_AS(buf, t) ((t*)((buf).data))
+
+
 
 // pool
 
 /* 
-Initialize a pool of `capacity` elements of `element_size` size
+Initialize a pool of `capacity` elements of `element_size` bytes each
 Returns `true` if the operation was successful
 `auto_reserve` means the pool will automatically allocate space for new elements 
 */
@@ -101,31 +102,24 @@ Ensure that pool `p` has room for `capacity` total elements by GROWING ONLY
 Returns `true` if the operation was successful
 */
 bool wrm_Pool_reserve(wrm_Pool *p, size_t capacity);
-/* 
-If `capacity` is >= the number of elements currently in the bool, shrinks the pool's capacity to use less memory
-Calls the provided `delete` 
-Returns `true` if the operation was successful
-Never automatically called
-*/
-bool wrm_Pool_shrink(wrm_Pool *p, size_t capacity);
 /* Get an available slot (index of an element) from pool `p` */
 wrm_Option_Handle wrm_Pool_getSlot(wrm_Pool *p);
 /* Check that the slot at a given index is valid for pool `p`: p is not NULL, the index is within p, and the element at index is in use */
 inline bool wrm_Pool_isValid(wrm_Pool *p, wrm_Handle idx)
 {
-    return p && (idx < p->cap) && p->is_used[idx];
+    return p && (idx < p->cap) && p->in_use[idx];
 }
 /* Release the slot at `idx` for reuse, if it wasn't already available, in pool `p` */
 inline void wrm_Pool_freeSlot(wrm_Pool *p, wrm_Handle idx)
 {
     if(!wrm_Pool_isValid(p, idx)) { return; }
-    p->is_used[idx] = false;
-    p->used--;
+    p->in_use[idx] = false;
+    p->used_cnt--;
 }
 /* Get a safe void* to a location `offset` bytes from the start of the element at `idx`; returns NULL if `p` is NULL, `idx` is invalid, or `offset` is too big */
 inline void *wrm_Pool_offsetAt(wrm_Pool *p, wrm_Handle idx, size_t offset)
 {
-    return (wrm_Pool_isValid(p, idx) && (offset < p->element_size))  ? (u8*)p->data + idx * p->element_size + offset : NULL;
+    return (wrm_Pool_isValid(p, idx) && (offset < p->e_size))  ? (u8*)p->data + idx * p->e_size + offset : NULL;
 }
 /* Get a safe void* to a location in a pool; returns NULL if `p` is NULL or `idx` is invalid (out-of-bounds or freed slot) */
 inline void *wrm_Pool_at(wrm_Pool *p, wrm_Handle idx)
@@ -173,7 +167,7 @@ inline void wrm_Stack_reset(wrm_Stack *s, size_t len)
 /* Get a safe void* to a location `offset` bytes from the start of the element at `idx`; returns NULL if `s` is NULL, `idx` is invalid, or `offset` is too big */
 inline void *wrm_Stack_offsetAt(wrm_Stack *s, wrm_Handle idx, size_t offset)
 {
-    return (s && idx < s->len && (offset < s->element_size))  ? (u8*)s->data + idx * s->element_size + offset : NULL;
+    return (s && idx < s->len && (offset < s->e_size))  ? (u8*)s->data + idx * s->e_size + offset : NULL;
 }
 /* Get a safe void* to the location at `idx` in stack `s` returns NULL if `s` is NULL or the index is invalid (beyond top of stack) */
 inline void *wrm_Stack_at(wrm_Stack *s, wrm_Handle idx)
@@ -190,20 +184,17 @@ void wrm_Stack_delete(wrm_Stack *p, void (*delete)(void *element));
 
 // tree 
 
-/* Initializes a tree off of a source pool/stack */
-bool wrm_Tree_init(wrm_Tree *tree, void *source, u32 type, size_t tn_offset, size_t child_limit);
-/* Wrapper over stack and pool access functions for genericity */
-inline void *wrm_Tree_at(wrm_Tree *tree, u32 idx)
+/* 
+Initializes a tree from a source buffer (from a pool/stack)
+Creates an auxiliary pool to hold the lists of each node's children
+`auto_reserve` determines whether the children pool can resize automatically to fit demand, and should be `true` unless memory is constrained
+*/
+bool wrm_Tree_init(wrm_Tree *tree, wrm_Stack *src, size_t offset, size_t child_limit, bool auto_reserve);
+/* simplified tree node accessor */
+inline wrm_Tree_Node *wrm_Tree_at(wrm_Tree *tree, u32 idx)
 {
     if(!tree || !tree->src ) { return NULL; }
-    switch(tree->src_type) {
-        case WRM_STACK:
-            return wrm_Stack_offsetAt((wrm_Stack*)tree->src, idx, tree->node_offset);
-        case WRM_POOL:
-            return wrm_Pool_offsetAt((wrm_Pool*)tree->src, idx, tree->node_offset);
-        default:
-            return NULL;
-    }
+    return wrm_Pool_offsetAt(tree->src, idx, tree->offset);
 }
 /* Associates a child and parent, if possible */
 bool wrm_Tree_addChild(wrm_Tree *tree, u32 parent, u32 child);

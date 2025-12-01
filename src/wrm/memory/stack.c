@@ -6,7 +6,7 @@ bool wrm_Stack_init(wrm_Stack *s, size_t capacity, size_t element_size, bool aut
 
     s->len = 0;
     s->cap = capacity;
-    s->element_size = element_size;
+    s->e_size = element_size;
     s->data = calloc(capacity, element_size);
 
     s->auto_reserve = auto_reserve;
@@ -17,7 +17,7 @@ bool wrm_Stack_reserve(wrm_Stack *s, size_t capacity)
 {
     if(!s || capacity < s->cap) return false;
 
-    void *temp = realloc(s->data, capacity * s->element_size);
+    void *temp = realloc(s->data, capacity * s->e_size);
     if(!temp) { return false; }
     s->data = temp;
     s->cap = capacity;
@@ -28,7 +28,7 @@ bool wrm_Stack_shrink(wrm_Stack *s, size_t capacity)
 {
     if(!s || capacity > s->cap || capacity < s->len) return false;
 
-    void *temp = realloc(s->data, capacity * s->element_size);
+    void *temp = realloc(s->data, capacity * s->e_size);
     if(!temp) { return false; }
     s->data = temp;
     s->cap = capacity;
@@ -58,7 +58,7 @@ void wrm_Stack_delete(wrm_Stack *s, void (*delete)(void *element))
     
     free(s->data);
     s->data = NULL;
-    s->element_size = 0;
+    s->e_size = 0;
     s->cap = 0;
     s->len = 0;
 }
