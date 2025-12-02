@@ -77,6 +77,7 @@ extern FT_Library wrm_ft_library;
 extern wrm_Stack wrm_fonts;
 
 extern wrm_Pool wrm_gui_elements;
+extern wrm_Tree wrm_gui_tree;
 extern wrm_Quad the_quad;
 
 extern wrm_Handle wrm_gui_text_shader;
@@ -88,13 +89,6 @@ extern wrm_Handle wrm_gui_pane_shader;
 /*
 Module internal functions
 */
-
-// general
-
-inline bool wrm_gui_exists(wrm_Handle e)
-{
-    return e < wrm_gui_elements.cap && wrm_gui_elements.is_used[e];
-}
 
 // alignment
 
