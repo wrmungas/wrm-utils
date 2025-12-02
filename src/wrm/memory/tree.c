@@ -1,7 +1,7 @@
 #include "wrm/memory.h"
 
 
-bool wrm_Tree_init(wrm_Tree *tree, wrm_Stack *src, size_t offset, size_t child_limit, bool auto_reserve)
+bool wrm_Tree_init(wrm_Tree *tree, wrm_Pool *src, size_t offset, size_t child_limit, bool auto_reserve)
 {
     if(!tree || !src) { return false; }
 
@@ -189,5 +189,5 @@ void wrm_Tree_debugNode(wrm_Tree_Node *tn, wrm_Tree *tree) {
 
 // ensure compiler emits symbol
 
-void *wrm_Tree_at(wrm_Tree *tree, u32 idx);
+wrm_Tree_Node *wrm_Tree_at(wrm_Tree *tree, u32 idx);
 
