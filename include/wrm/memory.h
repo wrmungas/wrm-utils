@@ -189,7 +189,7 @@ Initializes a tree from a source buffer (from a pool/stack)
 Creates an auxiliary pool to hold the lists of each node's children
 `auto_reserve` determines whether the children pool can resize automatically to fit demand, and should be `true` unless memory is constrained
 */
-bool wrm_Tree_init(wrm_Tree *tree, wrm_Stack *src, size_t offset, size_t child_limit, bool auto_reserve);
+bool wrm_Tree_init(wrm_Tree *tree, wrm_Pool *src, size_t offset, size_t child_limit, bool auto_reserve);
 /* simplified tree node accessor */
 inline wrm_Tree_Node *wrm_Tree_at(wrm_Tree *tree, u32 idx)
 {
