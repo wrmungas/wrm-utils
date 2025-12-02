@@ -150,7 +150,7 @@ bool wrm_gui_removeChild(wrm_Handle parent, wrm_Handle child);
 // text box
 
 /* Create a text box gui element */
-wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle font, wrm_RGBA text_color, const char *text, u32 spacing);
+wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle font, wrm_RGBA text_color, const char *src, u32 spacing);
  
 // pane
 

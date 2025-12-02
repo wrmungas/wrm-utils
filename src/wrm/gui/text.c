@@ -9,7 +9,7 @@ static void wrm_gui_drawCharacter(char c, wrm_Font *f, ivec2 point);
 Module internal
 */
 
-wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle font, wrm_RGBA text_color, const char *src)
+wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle font, wrm_RGBA text_color, const char *src, u32 spacing)
 {
     wrm_Option_Handle result = wrm_Pool_getSlot(&wrm_gui_elements);
     if(!result.exists) return result;
@@ -23,7 +23,7 @@ wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle f
     text->font = font;
     text->text_color = text_color;
     text->src_text = src;
-
+    return OPTION_NONE(Handle);
 }
 
 void wrm_gui_drawText(wrm_Text *t)
