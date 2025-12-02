@@ -41,9 +41,10 @@ wrm_Option_Handle wrm_render_createTexture(const wrm_Texture_Data *data)
         .transparent = data->transparent,
     };
 
+    GLenum format = GL_RGBA;
     if(data->channels == 1) {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        return result;
+        format = GL_ALPHA;
     }
 
     glTexImage2D(
@@ -53,7 +54,7 @@ wrm_Option_Handle wrm_render_createTexture(const wrm_Texture_Data *data)
         data->width,    // width in pixels
         data->height,   // height in pixels
         0,              // border (weird legacy argument - borders should be set explicitly with glTexParameterxx)
-        GL_RGBA,      // format of the incoming image data
+        format,      // format of the incoming image data
         GL_UNSIGNED_BYTE,
         data->pixels
     );

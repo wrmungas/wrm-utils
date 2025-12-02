@@ -263,30 +263,30 @@ void wrm_render_debugFrame(void)
     wrm_render_debug_frame = true;
     printf("DEBUG: Render:\n\nINTERNAL DATA\n");
 
-    printf("\nShaders: %zu total (memory for %zu):\n", wrm_shaders.used, wrm_shaders.cap);
+    printf("\nShaders: %zu total (memory for %zu):\n", wrm_shaders.used_cnt, wrm_shaders.cap);
     for(u32 i = 0; i < wrm_shaders.cap; i++) {
-        if(wrm_shaders.is_used[i]) {
+        if(wrm_shaders.in_use[i]) {
             wrm_render_debugShader(i);
         }
     }
 
-    printf("\nTextures: %zu total (memory for %zu):\n", wrm_textures.used, wrm_textures.cap);
+    printf("\nTextures: %zu total (memory for %zu):\n", wrm_textures.used_cnt, wrm_textures.cap);
     for(u32 i = 0; i < wrm_textures.cap; i++) {
-        if(wrm_textures.is_used[i]) {
+        if(wrm_textures.in_use[i]) {
             wrm_render_debugTexture(i);
         }
     }
 
-    printf("\nMeshes: %zu total (memory for %zu):\n", wrm_meshes.used, wrm_meshes.cap);
+    printf("\nMeshes: %zu total (memory for %zu):\n", wrm_meshes.used_cnt, wrm_meshes.cap);
     for(u32 i = 0; i < wrm_meshes.cap; i++) {
-        if(wrm_meshes.is_used[i]) {
+        if(wrm_meshes.in_use[i]) {
             wrm_render_debugMesh(i);
         }
     }
 
-    printf("\nModels: %zu total (memory for %zu):\n", wrm_models.used, wrm_models.cap);
+    printf("\nModels: %zu total (memory for %zu):\n", wrm_models.used_cnt, wrm_models.cap);
     for(u32 i = 0; i < wrm_models.cap; i++) {
-        if(wrm_models.is_used[i]) {
+        if(wrm_models.in_use[i]) {
             wrm_render_debugModel(i);
         }
     }
@@ -350,19 +350,19 @@ bool wrm_render_exists(wrm_Handle h, wrm_render_Resource_Type t, const char *cal
     switch(t) {
         case WRM_RENDER_RESOURCE_SHADER:
             type = "shader";
-            result = h < wrm_shaders.cap && wrm_shaders.is_used[h];
+            result = h < wrm_shaders.cap && wrm_shaders.in_use[h];
             break;
         case WRM_RENDER_RESOURCE_TEXTURE:
             type = "texture";
-            result = h < wrm_textures.cap && wrm_textures.is_used[h];
+            result = h < wrm_textures.cap && wrm_textures.in_use[h];
             break;
         case WRM_RENDER_RESOURCE_MESH:
             type = "mesh";
-            result = h < wrm_meshes.cap && wrm_meshes.is_used[h];
+            result = h < wrm_meshes.cap && wrm_meshes.in_use[h];
             break;
         case WRM_RENDER_RESOURCE_MODEL:
             type = "model";
-            result = h < wrm_models.cap && wrm_models.is_used[h];
+            result = h < wrm_models.cap && wrm_models.in_use[h];
             break;
         default:
             if(wrm_render_settings.errors) wrm_error("Render", "exists()", "invalid resource type [%d]\n", t);
@@ -387,7 +387,7 @@ static void wrm_render_initMemory(void)
 
     wrm_Stack_init(&wrm_tbd, WRM_RENDER_LIST_INITIAL_CAPACITY, sizeof(wrm_render_Data), true);
 
-    wrm_Tree_init(&wrm_model_tree, &wrm_models, WRM_POOL, offsetof(wrm_Model, tree_node), WRM_MODEL_CHILD_LIMIT);
+    wrm_Tree_init(&wrm_model_tree, &wrm_models, offsetof(wrm_Model, tree_node), WRM_MODEL_CHILD_LIMIT, true);
 
     wrm_ui_count = 0;
 }
@@ -413,12 +413,13 @@ static void wrm_render_addModelAndChildren(wrm_Handle model, mat4 parent_transfo
 {
     wrm_Model *m = wrm_Pool_at(&wrm_models, model);
 
-    wrm_render_Data data; 
+    static wrm_render_Data data; // share this between recursive calls
     wrm_render_packTransform(m->pos, m->rot, m->scale, data.transform);
     if(parent_transform) {
         glm_mat4_mul(parent_transform, data.transform, data.transform);
     }
 
+    // add the model, if visible
     if(m->shown) { 
         data.mesh = m->mesh;
         data.shader = m->shader;
@@ -440,17 +441,18 @@ static void wrm_render_addModelAndChildren(wrm_Handle model, mat4 parent_transfo
         memcpy(wrm_Stack_at(&wrm_tbd, top.val), &data, sizeof(data));
     }
     
-    if(!(m->tree_node.child_count && m->children_shown)) { return; }
+    // done if no children
+    if(!(m->tree_node.child_cnt && m->children_shown)) { return; }
 
     // add lone child
-    if(m->tree_node.child_count == 1) {
+    if(m->tree_node.child_cnt == 1) {
         wrm_render_addModelAndChildren(m->tree_node.children, data.transform);
         return;
     }
 
     // add children list
     u32 *children = wrm_Pool_at(&wrm_model_tree.child_lists, m->tree_node.children);
-    for(u8 i = 0; i < m->tree_node.child_count; i++) {
+    for(u8 i = 0; i < m->tree_node.child_cnt; i++) {
         wrm_render_addModelAndChildren(children[i], data.transform);
     }
 }
@@ -516,7 +518,7 @@ void wrm_render_drawModel(wrm_render_Data *draw_data, mat4 view, mat4 persp, u32
 
 static void wrm_render_packTransform(vec3 pos, vec3 rot, vec3 scale, mat4 transform)
 {
-    glm_mat4_identity(transform);
+    glm_mat4_identity(transform); // zero this first
     glm_translate(transform, pos);
     
     vec3 as_rad = {glm_rad(rot[0]), glm_rad(rot[1]), glm_rad(rot[2])};
