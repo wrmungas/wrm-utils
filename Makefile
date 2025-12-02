@@ -28,7 +28,7 @@ TESTS = $(patsubst %,$(BIN_DIR)/%,$(TEST_NAMES))
 
 # compiler variables
 CC = gcc
-CFLAGS = -std=c99 -Wall -g -I$(INC_DIR) -I/usr/local/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include
+CFLAGS = -std=c99 -Wall -g -I$(INC_DIR) -I/usr/local/include/freetype2 -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include
 LDFLAGS = -lSDL2 -lGL -lm -lfreetype -lconfig
 
 .PHONY:
