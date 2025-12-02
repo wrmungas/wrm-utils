@@ -24,6 +24,7 @@ REQUIREMENTS:
 */
 
 #include "wrm/common.h"
+#include "wrm/memory.h"
 #include "wrm/render.h"
 #include "wrm/input.h"
 
@@ -72,18 +73,19 @@ struct wrm_gui_Alignment {
 struct wrm_gui_Properties {
     enum { WRM_GUI_TEXT, WRM_GUI_PANE, WRM_GUI_IMAGE} type;
     wrm_gui_Alignment alignment;
-    u32 model;
-    u32 parent;
-    bool visible;
+    wrm_Tree_Node tree_node;
+    bool shown;
+    bool children_shown;
 };
 
 struct wrm_Text {
     wrm_gui_Properties properties;
+    const char *src_text;
     wrm_Handle font;
-    u32 text_len;
     wrm_RGBA text_color;
-    u32 spacing; // pixels between each line
-    const char *text;
+    u32 line_spacing; // pixels between each line
+    u32 pixel_limit; // maximum length of each line
+    bool wrap; // whether or not to wrap a line upon reaching the pixel limit
 };
 
 struct wrm_Pane {
@@ -140,6 +142,10 @@ wrm_Option_Handle wrm_gui_loadFont(const char *path);
 
 // all elements
 bool wrm_gui_setAlignment(wrm_Handle element, wrm_gui_Alignment alignment);
+bool wrm_gui_setShown(wrm_Handle element, bool shown);
+bool wrm_gui_setChildrenShown(wrm_Handle element, bool shown);
+bool wrm_gui_addChild(wrm_Handle parent, wrm_Handle child);
+bool wrm_gui_removeChild(wrm_Handle parent, wrm_Handle child);
 
 // text box
 
