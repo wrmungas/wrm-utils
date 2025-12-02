@@ -89,7 +89,7 @@ void wrm_gui_getTopLeft(wrm_gui_Alignment a, i32 *tl_x, i32 *tl_y)
 
 bool wrm_gui_setAlignment(wrm_Handle element, wrm_gui_Alignment alignment)
 {
-    if(!wrm_gui_exists(element)) return false;
+    if(!wrm_Pool_isValid(&wrm_gui_elements, element)) return false;
 
     wrm_gui_Element *e = wrm_Pool_at(&wrm_gui_elements, element);
     if(!e) return false;
