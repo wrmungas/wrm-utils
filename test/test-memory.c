@@ -13,14 +13,14 @@ void printChildren(wrm_Handle idx, Test *test, wrm_Tree *tree)
     if(test->node.has_parent) {
         printf("parent: %u, ", test->node.parent);
     }
-    printf("child_count: %u", test->node.child_count);
-    if(test->node.child_count > 0) {
+    printf("child_cnt: %u", test->node.child_cnt);
+    if(test->node.child_cnt > 0) {
        printf(", children: %u", test->node.children);
     }
-    if(test->node.child_count > 1) {
+    if(test->node.child_cnt > 1) {
         u32 *children = wrm_Pool_at(&tree->child_lists, test->node.children);
         printf("{ ");
-        for(u8 i = 0; i < test->node.child_count; i++) {
+        for(u8 i = 0; i < test->node.child_cnt; i++) {
             printf("%u ", children[i]);
         }
         printf("}");
@@ -46,8 +46,8 @@ int main(int argv, char **argc)
         result = wrm_Pool_getSlot(&p);
         if(!result.exists) wrm_fail(1, "Test", "static pool", "failed to get a slot from the pool");
     }
-    printf("Pool test: used %zu, capacity %zu\n", p.used, p.cap);
-    if(p.used != p.cap) wrm_fail(1, "Test", "static pool", "pool slots used does not equal capacity");
+    printf("Pool test: used_count %zu, capacity %zu\n", p.used_cnt, p.cap);
+    if(p.used_cnt != p.cap) wrm_fail(1, "Test", "static pool", "pool slots used does not equal capacity");
     result = wrm_Pool_getSlot(&p);
     if(result.exists) wrm_fail(1, "Test", "static pool", "got slot when pool should be at capacity");
     if(!wrm_Pool_reserve(&p, 40)) wrm_fail(1, "Test", "static pool", "failed to reserve space in pool");
@@ -71,7 +71,7 @@ int main(int argv, char **argc)
     wrm_Pool_delete(&p, NULL);
     wrm_Stack_delete(&s, NULL);
 
-    if(p.is_used || p.data || s.data) wrm_fail(1, "Test", "delete", "stack and pool not properly deleted");
+    if(p.in_use || p.data || s.data) wrm_fail(1, "Test", "delete", "stack and pool not properly deleted");
 
     if(!wrm_Pool_init(&p, 20, sizeof(Test), true) || !wrm_Stack_init(&s, 20, sizeof(Test), true)) {
         wrm_fail(1, "Test", "static test start", "failed to re-initialize stack and pool");
@@ -82,19 +82,19 @@ int main(int argv, char **argc)
         result = wrm_Pool_getSlot(&p);
         if(!result.exists) wrm_fail(1, "Test", "growable pool", "failed to get a slot from the pool");
     }
-    printf("Pool growth test: used %zu, capacity %zu\n", p.used, p.cap);
+    printf("Pool growth test: used_count %zu, capacity %zu\n", p.used_cnt, p.cap);
 
     // test pushing to growable stack
     for(int i = 0; i < 21; i++) {
         result = wrm_Stack_push(&s);
         if(!result.exists) wrm_fail(1, "Test", "growable stack", "failed to push the top of the stack");
     }
-    printf("Stack growth test: used %zu, capacity %zu\n", s.len, s.cap);
+    printf("Stack growth test: used_count %zu, capacity %zu\n", s.len, s.cap);
 
 
 
     wrm_Tree t;
-    if(!wrm_Tree_init(&t, &p, WRM_POOL, offsetof(Test, node), 8)) {
+    if(!wrm_Tree_init(&t, &p, offsetof(Test, node), 8, true)) {
         wrm_fail(1, "Test", "tree start", "failed to initialize tree");
     }
 
