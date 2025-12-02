@@ -9,9 +9,21 @@ static void wrm_gui_drawCharacter(char c, wrm_Font *f, ivec2 point);
 Module internal
 */
 
-wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle font, wrm_RGBA text_color, const char *text, u32 spacing)
+wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle font, wrm_RGBA text_color, const char *src)
 {
-    return OPTION_NONE(Handle);
+    wrm_Option_Handle result = wrm_Pool_getSlot(&wrm_gui_elements);
+    if(!result.exists) return result;
+
+    wrm_gui_Element *e = wrm_Pool_at(&wrm_gui_elements, result.val);
+    if(!e) return OPTION_NONE(Handle);
+
+    wrm_Text *text = &e->text;
+
+    text->properties = properties;
+    text->font = font;
+    text->text_color = text_color;
+    text->src_text = src;
+
 }
 
 void wrm_gui_drawText(wrm_Text *t)
@@ -41,9 +53,9 @@ void wrm_gui_drawText(wrm_Text *t)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, r_tex->gl_tex);
 
-    while(i < t->text_len) {
-        i += wrm_gui_drawTextLine(t->text + i, f, start);
-        start[WRM_Y] += f->atlas_height + t->spacing;
+    while(t->src_text[i]) {
+        i += wrm_gui_drawTextLine(t->src_text + i, f, start);
+        start[WRM_Y] += f->atlas_height + t->line_spacing;
     }
 }
 
