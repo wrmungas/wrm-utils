@@ -34,7 +34,8 @@ struct wrm_Glyph {
     float bmp_left; // bitmap_left
     float bmp_top; // bitmap_top
   
-    float tex_offset; // x offset of glyph in texture coordinates
+    float u; // u texture coordinate of top-left corner of glyph in the atlas
+    float v; // v texture coordinate of top-left corner of glyph in the atlas
 };
 
 struct wrm_Font {

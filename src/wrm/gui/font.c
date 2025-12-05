@@ -67,7 +67,8 @@ wrm_Option_Handle wrm_gui_loadFont(const char *path)
             .bmp_h = g->bitmap.rows,
             .bmp_left = g->bitmap_left,
             .bmp_top = g->bitmap_top,
-            .tex_offset = (float)x_offset / w
+            .u = x_offset / w,
+            .v = 0
         };
         
         // copy pixel data over

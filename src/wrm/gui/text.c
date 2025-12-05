@@ -1,8 +1,17 @@
 #include "gui.h"
 
-/* draws from a position in a string up until the next newline character, or NULL; returns the number of chars drawn */
+/*
+Draws a line of text char-by-char to the screen, with the given font and baseline start point.
+Will draw until a newline or NULL is encountered.
+Returns the number of characters 'consumed' (whitespace chars are not technically 'drawn'), 
+which is the amount to advance the string pointer by for the next line.
+Returns zero if the only character encountered is a NULL
+*/
 static u32 wrm_gui_drawTextLine(const char *s, wrm_Font *f, ivec2 start_point);
-/* Sets the quad data and draws a single character to the screen */
+/*
+Sets the quad data and draws a single character to the screen from the given baseline (left-side) point.
+Updates the baseline point (ivec2 is a wrapper over an int*)
+*/
 static void wrm_gui_drawCharacter(char c, wrm_Font *f, ivec2 point);
 
 /* 
@@ -36,7 +45,7 @@ void wrm_gui_drawText(wrm_Text *t)
 
     ivec2 start = { 
         t->properties.alignment.x,
-        t->properties.alignment.y
+        t->properties.alignment.y // TODO: take baseline into account
     };
 
     wrm_Shader *s = wrm_Pool_at(&wrm_shaders, wrm_gui_text_shader);
