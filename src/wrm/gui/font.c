@@ -22,7 +22,7 @@ wrm_Option_Handle wrm_gui_loadFont(const char *path)
 
     if(!f) { return OPTION_NONE(Handle); }
 
-    f->glyph_set = calloc(WRM_FONT_GLYPHS_COUNT, sizeof(wrm_Glyph));
+    f->glyphs = calloc(WRM_FONT_GLYPHS_COUNT, sizeof(wrm_Glyph));
 
     // use freetype
 
@@ -36,6 +36,8 @@ wrm_Option_Handle wrm_gui_loadFont(const char *path)
     
     int w = 0;
     int h = 0;
+    int y_max = 0;
+    int y_min = 0;
     FT_GlyphSlot g = f->face->glyph;
 
     // iterate once over the characters to get the maximum width and height
@@ -47,10 +49,19 @@ wrm_Option_Handle wrm_gui_loadFont(const char *path)
         
         w += g->bitmap.width;
         h =  h > g->bitmap.rows ? h : g->bitmap.rows; 
+
+        int top = g->bitmap_top;
+        y_max = top > y_max ? top : y_max;
+
+        int bottom = g->bitmap_top - g->bitmap.rows;
+        y_min = bottom < y_min ? bottom : y_min;
     }
 
-    // allocate a pixel buffer to copy the bitmaps into
+    // save values
+    f->y_max = y_max;
+    f->y_min = abs(y_min);
     
+    // allocate a pixel buffer to copy the bitmaps into
     u8 *pixels = calloc(w * h, 1);
     u32 x_offset = 0; 
 
@@ -60,15 +71,16 @@ wrm_Option_Handle wrm_gui_loadFont(const char *path)
             continue;
         }
 
-        f->glyph_set[c - 32] = (wrm_Glyph) {
-            .advance_x = g->advance.x >> 6, // advance is given in units of 1/64th pixel, 64 = 2^6
-            .advance_y = g->advance.y >> 6,
-            .bmp_w = g->bitmap.width,
-            .bmp_h = g->bitmap.rows,
-            .bmp_left = g->bitmap_left,
-            .bmp_top = g->bitmap_top,
-            .u = x_offset / w,
-            .v = 0
+        f->glyphs[c - 32] = (wrm_Glyph) {
+            .advance = g->metrics.horiAdvance >> 6, 
+            .bearing_x = g->metrics.horiBearingX >> 6,
+            .bearing_y = g->metrics.horiBearingY >> 6,
+            .w_px = g->bitmap.width,
+            .h_px = g->bitmap.rows,
+
+            .tl_u = (float)x_offset / (float)w,
+            .w = (float)g->bitmap.width / (float)w,
+            .h = (float)g->bitmap.rows / (float)h
         };
         
         // copy pixel data over

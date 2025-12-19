@@ -120,7 +120,7 @@ void wrm_gui_debugElement(wrm_Handle element)
     wrm_gui_Element *e = wrm_Pool_at(&wrm_gui_elements, element);
    
     const char *strings[3] = { "TEXT",  "PANE", "IMAGE"};
-    printf("GUI Element [%u] (%s): \n", element, strings[e->properties.type]);
+    printf("[%u] (%s): \n", element, strings[e->properties.type]);
 
     wrm_gui_debugAlignment(e->properties.alignment);
     // TODO: add switch for each element type's debug() function

@@ -44,13 +44,13 @@ wrm_Option_Handle wrm_render_createTexture(const wrm_Texture_Data *data)
     GLenum format = GL_RGBA;
     if(data->channels == 1) {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        format = GL_ALPHA;
+        format = GL_RED;
     }
 
     glTexImage2D(
         GL_TEXTURE_2D,  // texture target type
         0,              // detail level (for manually adding mipmaps; don't do this, generate them with glGenerateMipmap)
-        GL_RGBA,      // format OpenGL should store the image with
+        format,      // format OpenGL should store the image with
         data->width,    // width in pixels
         data->height,   // height in pixels
         0,              // border (weird legacy argument - borders should be set explicitly with glTexParameterxx)

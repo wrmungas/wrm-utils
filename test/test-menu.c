@@ -77,19 +77,24 @@ int main(int argc, char **argv)
     *a = (wrm_gui_Alignment) {
         .width = atlas->w, .height = atlas->h,
         .x = 10, .x_from = WRM_LEFT, .x_is = WRM_LEFT,
-        .y = 10, .y_from = WRM_BOTTOM, .y_is = WRM_BOTTOM
+        .y = 10, .y_from = WRM_TOP, .y_is = WRM_TOP
     };
-
     wrm_Option_Handle font_atlas_image = wrm_gui_createImage(p, f->atlas);
     if(!font_atlas_image.exists) wrm_fail(1, "Test", "main()", "failed to create character atlas texture from font");
 
-
-    // make text element in bottom right corner (TODO)
+    // make text element in bottom right corner 
+    *a = (wrm_gui_Alignment) {
+        .width = 200, .height = 100,
+        .x = 10, .x_from = WRM_RIGHT, .x_is = WRM_RIGHT,
+        .y = 10, .y_from = WRM_BOTTOM, .y_is = WRM_BOTTOM
+    };
+    wrm_Option_Handle text = wrm_gui_createText(p, font.val, WRM_RGBA_WHITE, "Hello text!\nTwo lines :)", 10);
+    if(!text.exists) wrm_fail(1, "Test", "main()", "failed to create text element");
 
 
     bool should_close = false;
-    u32 i = 0;
     wrm_render_debugFrame();
+
     while(!should_close) {
         
         SDL_Event e;
@@ -98,20 +103,6 @@ int main(int argc, char **argv)
                 should_close = true;
             }
         }
-
-        if(i % 60 == 0 && false) { // disable this until I have this shit working
-            *a = (wrm_gui_Alignment) {
-                .x = rand() % 200, .y = rand() % 170, .width = 100, .height = 100,
-                .x_from = rand() % 3, .x_is = rand() % 3,
-                .y_from = rand() % 3 + 2, .y_is = rand() % 3 + 2
-            };
-
-            wrm_gui_setAlignment(image.val, *a);
-
-            wrm_render_debugFrame();
-        }
-        
-        i++;
 
         wrm_render_draw();
         wrm_gui_draw();

@@ -25,24 +25,23 @@ Internal type definitions
 */
 
 struct wrm_Glyph {
-    float advance_x; // advance.x
-    float advance_y; // advance.y
-  
-    float bmp_w; // bitmap.width
-    float bmp_h; // bitmap.rows
-  
-    float bmp_left; // bitmap_left
-    float bmp_top; // bitmap_top
-  
-    float u; // u texture coordinate of top-left corner of glyph in the atlas
-    float v; // v texture coordinate of top-left corner of glyph in the atlas
+    float tl_u;
+    float w;
+    float h;
+
+    i16 advance;
+    i16 bearing_x;
+    i16 bearing_y;
+    i16 w_px;
+    i16 h_px;
 };
 
 struct wrm_Font {
     wrm_Handle atlas;
-    u32 atlas_height; // the height of the atlas texture in pixels
-    wrm_Glyph *glyph_set;
-    FT_Face face;
+    u16 y_max; // maximum height above baseline: starting point should be (alignment.tl_y - y_max)
+    u16 y_min; // furthest depth below the baseline: should move the starting point down by `(y_max + y_min + spacing)` pixels
+    wrm_Glyph *glyphs; // list of each glyph's rendering info
+    FT_Face face; // FreeType font face associated with the font
 };
 
 
