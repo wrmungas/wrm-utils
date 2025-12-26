@@ -2,8 +2,8 @@
 
 // mesh constants/globals
 
-const static u8 floats_per_col = 4;
-const static u8 floats_per_uv = 2;
+static const u8 floats_per_col = 4;
+static const u8 floats_per_uv = 2;
 
 // default meshes
 
@@ -269,6 +269,7 @@ wrm_Option_Handle wrm_render_cloneMesh(wrm_Handle mesh)
 
 bool wrm_render_updateMesh(wrm_Handle mesh, const wrm_Mesh_Data *data)
 {
+    // TODO: look up how to update GPU buffers
     return true;
 }
 

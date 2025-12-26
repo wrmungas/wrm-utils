@@ -62,7 +62,7 @@ char *wrm_readFile(const char *path)
     if(!fp) return NULL;
 
     fseek(fp, 0, SEEK_END);
-    long bytes = ftell(fp);
+    size_t bytes = ftell(fp);
     if(bytes < 1) {
         fclose(fp); 
         return NULL;

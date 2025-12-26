@@ -17,11 +17,14 @@ wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle f
     wrm_gui_Element *e = wrm_Pool_at(&wrm_gui_elements, result.val);
     if(!e) return OPTION_NONE(Handle);
 
+    if(!wrm_Stack_at(&wrm_fonts, font)) return OPTION_NONE(Handle);
+
     e->text = (wrm_Text) {
         .properties = properties,
         .text_color = text_color,
         .src_text = src,
-        .line_spacing = spacing
+        .line_spacing = spacing,
+        .font = font
     };
 
     e->text.properties.type = WRM_GUI_TEXT;

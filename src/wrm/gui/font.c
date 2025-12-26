@@ -34,8 +34,8 @@ wrm_Option_Handle wrm_gui_loadFont(const char *path)
 
     FT_Set_Pixel_Sizes(f->face, 0, 48);
     
-    int w = 0;
-    int h = 0;
+    uint w = 0;
+    uint h = 0;
     int y_max = 0;
     int y_min = 0;
     FT_GlyphSlot g = f->face->glyph;

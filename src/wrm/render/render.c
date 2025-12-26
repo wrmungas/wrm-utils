@@ -228,7 +228,7 @@ void wrm_render_draw(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     // render all the opaque models to backbuffer
-    for(int i = 0; i < wrm_tbd.len; i++) {
+    for(size_t i = 0; i < wrm_tbd.len; i++) {
         if(wrm_render_debug_frame) { wrm_render_debugModel(curr->src_model); }
 
         wrm_render_updateGLState(curr, prev, &count, &mode, &indexed);
@@ -325,7 +325,7 @@ void wrm_render_getOrientation(const vec3 rot, vec3 forward, vec3 up, vec3 right
 
 void wrm_render_getOrientationXY(const vec3 rot, vec3 forward, vec3 right)
 {
-    float yaw_r = glm_rad(wrm_camera.rot[WRM_YAW]);
+    float yaw_r = glm_rad(rot[WRM_YAW]);
 
     vec3 f = {
         cosf(yaw_r),

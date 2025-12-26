@@ -1,79 +1,77 @@
-# important directories and names
-OBJ_DIR = build
+# important directories
+BUILD_DIR = build
 INC_DIR = include
 SRC_DIR = src
 BIN_DIR = bin
 TEST_DIR = test
+DEP_DIRS = glad stb
+WRM_DIR = wrm
+WRM_SUBDIRS = common gui input linmath memory render
 
-WRM_SUBDIRS = render menu memory gui
-WRM_ALLDIRS = wrm $(patsubst %,wrm/%,$(WRM_SUBDIRS))
-SRC_SUBDIRS = glad stb $(WRM_ALLDIRS)
-SRC_ALLDIRS = $(SRC_DIR) $(patsubst %,$(SRC_DIR)/%,$(SRC_SUBDIRS))
-OBJ_SUBDIRS = test $(SRC_ALLDIRS)
-OBJ_ALLDIRS = $(OBJ_DIR) $(patsubst %,$(OBJ_DIR)/%,$(OBJ_SUBDIRS))
-
-BUILD_DIRS = $(BIN_DIR) $(OBJ_ALLDIRS)
-
-# all source files
-SRCS = $(shell find $(SRC_DIR) -name '*.c')
-# all objects
-.PRECIOUS:
-OBJS = $(patsubst %.c,$(OBJ_DIR)/%.o,$(SRCS))
-
-TEST_SRCS = $(shell find $(TEST_DIR) -name '*.c')
-TEST_OBJS = $(patsubst %,$(OBJ_DIR)/%,$(TEST_SRCS))
-
-TEST_NAMES = test-render test-menu test-memory
-TESTS = $(patsubst %,$(BIN_DIR)/%,$(TEST_NAMES))
 
 # compiler variables
 CC = gcc
-CFLAGS = -std=c99 -Wall -g -I$(INC_DIR) -I/usr/local/include/freetype2 -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include
-LDFLAGS = -lSDL2 -lGL -lm -lfreetype -lconfig
+CFLAGS = -Wall -Wextra -std=c99
+IFLAGS = -I$(INC_DIR) -I/usr/local/include/freetype2 -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include
+LFLAGS = -lm -lSDL2 -lGL -lfreetype -lconfig
+AR = ar 
+AFLAGS = rcs
 
-.PHONY:
-all: $(BUILD_DIRS) $(TESTS)
+# target 1: build directories
+BUILD_DIRS = $(BIN_DIR) $(TEST_DIR)/$(BIN_DIR) $(BUILD_DIR) $(patsubst %,$(BUILD_DIR)/%,$(DEP_DIRS)) $(BUILD_DIR)/$(WRM_DIR) $(patsubst %,$(BUILD_DIR)/$(WRM_DIR)/%,$(WRM_SUBDIRS))
 
-# setup build directory structure
 $(BUILD_DIRS):
 	@echo create $@
 	@mkdir $@
 
-# compile all
-# for some reason this doesn't work if I don't explicitly type the patterns
-build/src/%.o: src/%.c
+
+# target 2: all objects
+SRCS = $(shell find $(SRC_DIR) -name '*.c')
+OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRCS))
+
+.SECONDEXPANSION:
+$(OBJS): $$(patsubst $$(BUILD_DIR)/%.o,$$(SRC_DIR)/%.c,$$@)
 	@echo $@:
-	@$(CC) -c $(CFLAGS) $^ -o $@
+	@cd $(CC) -c $(CFLAGS) $(IFLAGS) $^ -o $@ 
 
-build/test/%.o: test/%.c
+
+# target 3: libwrm
+WRM = $(BIN_DIR)/libwrm.a
+
+$(WRM): $(OBJS)
 	@echo $@:
-	@$(CC) -c $(CFLAGS) $^ -o $@
+	@$(AR) $(AFLAGS) $@ $(OBJS)
 
-bin/%: build/test/%.o $(OBJS)
-	@echo $@:
-	@$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-# empty rules so make doesn't fucking delete every built file
-$(OBJS):
+# target 4: tests
+TEST_SRCS = $(wildcard $(TEST_DIR)/$(SRC_DIR)/*.c)
+TESTS = $(patsubst $(TEST_DIR)/$(SRC_DIR)/%.c,$(TEST_DIR)/$(BIN_DIR)/%,$(TEST_SRCS)) # only here to verify my patsubst logic
 
-$(TEST_OBJS):
+.PHONY:
+.SECONDEXPANSION:
+$(TESTS): $$(patsubst $$(TEST_DIR)/$$(BIN_DIR)/%,$$(TEST_DIR)/$$(SRC_DIR)/%.c,$$@)
+	@$(CC) $(CFLAGS) $(IFLAGS) $^ $(WRM) -o $@ $(LFLAGS)
 
+
+.PHONY:
+dirs: $(BUILD_DIRS)
+
+.PHONY:
+all: $(BUILD_DIRS) $(WRM) $(TESTS)
+
+.PHONY:
+default: all
 
 .PHONY:
 vars:
-	@echo BUILD_DIRS:
-	@echo $(BUILD_DIRS)
-	@echo 
-	@echo OBJS:
-	@echo $(OBJS)
-	@echo
-	@echo TESTS:
-	@echo $(TESTS)
+	@echo BUILD_DIRS: $(BUILD_DIRS)
+	@echo OBJS: $(OBJS)
+	@echo TESTS: $(TESTS)
+
 
 .PHONY:
 clean:
-	-rm -rf $(OBJ_DIR)
-	-rm -rf $(BIN_DIR)
+	-rm -rf $(BUILD_DIRS)
 
 .PHONY:
 fresh: clean all
