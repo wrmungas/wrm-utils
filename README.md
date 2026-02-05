@@ -1,49 +1,65 @@
 # wrm-utils
 ---
-A framework for creating graphical applications and games in C. Expands on the functionality of SDL to provide a
-more complete foundation for 3d graphics. 
+A framework for creating graphical applications and games in C.
 
 I may expand/rewrite this to C++ in the future :)
 
 The project in its current state has almost all features I desired for the initial version. I still
 have a few changes in mind, including:
-- a rework of error handling and print functions
+- a rework of error handling and print functions (introduce a `log` module)
+- extracting window creation to a `window` module to prevent everything depending on `render`
 - a rework of some of the memory structures 
-- string buffering in `string.h` (currently unimplemented)
+- extension of `input` to include things like controllers and joysticks
+- adding string types and buffering with `string.h` (currently unimplemented)
 - updating the `wrmh/` folder for a header-only version of the project (do not use in current state)
-- a rework of the Makefile to include targets to build the project to static (.a) and dynamic (.so) library files, and to build 
-the test programs by linking to these
-
-Longer-term features I would like to consider include:
-- more complex model format to include skeletal animation
-- more involved gui items composed of the different primitives
-- menu layout computation that is more flexible and automatic
-- much more comprehensive documentation and user guidance
 
 # Features
 ---
-Features are grouped by the following headers:
-- `render.h`: 3d rendering primitives (shaders, textures, meshes, and models)
-- `input.h`: mouse and keyboard input handling
-- `gui.h`: very simple 2d menu primitives (panes, images, and text)
-- `memory.h`: basic data structures based on allocating large blocks of memory and only growing when necessary (stack, pool, tree)
+See [modules](doc/modules.md) for information on the features offered by this project.
+
+As an overview:
+- `common`: provides baseline integer types and macros used across the rest of the project
+- `memory`: fundamental data structures
+- `linmath`: expands on cglm for some useful functions
+- `input`: by-frame keyboard and mouse input polling
+- `render`: 3d graphics primitives: shaders, textures, meshes, models, and cameras
+- `gui`: 2d GUI primitives: panes, textboxes, and images
+
+Short-term planned features include:
+- removal of `wrmh` - will reconsider header-only versions of the project at a later time but currently this just takes up
+space, is horrendously outdated compared to the rest of the project, and should NOT be used
+- addition of a `log` module to remove dependence on `common` for logging functions
+- reworking `memory` data structures (and adding a few new ones) and creating a distinct `Index` type (rather than just a `u32` typedef; yes, this is a band-aid over my choice to use a language with the type-safety of C)
+
+
+Longer-term plans include:
+- reworking the model format to support things like skeletal animation
+- adding the ability to directly load .obj files to `wrm_Model`s
+- extracting window creation to a `window` or `os` module to prevent everything depending on `render`
+- improving `gui` layout control (now that I'm more familiar with CSS, I have a lot of ideas); possibly supporting rendering for the Clay layout library
+- improving `input` to handle things outside of keyboard-and-mouse PC world; I'd like to be able to use controllers as well!
+- reworking the Makefile to build to a shared library
+- reworking the project to minimize dependencies and possibly include its own OS compatibility layer
+
+# Dependencies
+---
+This project depends on a few packages:
+- SDL: specifically SDL2
+- FreeType
+
+Also, this implicitly depends on the standard C library:
+- I'd like to move away from this in the future if people want control over allocations in particular
+- my policy in creating this is to use arena-based structures especially since this is oriented toward games
+    - typical style is to perform large allocations up-front for the major data structures that will persist for most of the app's lifetime
+    - the initial size, whether to allow reallocations, and the reallocation policy are up to the user
+    - testing and profiling will suggest what initial memory sizes work for either minimizing reallocations or forbidding them altogether
+but currently I just use `malloc`/`calloc`/`realloc` minimally with arena-type memory structures, and `free` everything 
+when module `quit` functions are called
 
 # Usage
 ---
-The only current way to use wrm-utils is to build from source and link the 
-link it into other projects. You should copy the contents of the `include/wrm/` directory to your
-project for the necessary headers. At the moment the Makefile doesn't support building the project to a 
-library, but that is the next planned addition. 
+The only current way to use wrm-utils is to build from source as a static library and link it directly
+into your projects. You should copy the contents of `include/wrm/` to your
+project for the necessary headers. 
 
-The `include/wrmh/` directory is intended for a header-only version of the project, and is not currently
-implemented. DO NOT USE IT.
-
-# Dependencies
---- 
-This project links with the FreeType and SDL libraries, and includes header-only files from `stb` and `cglm`.
-These all must be in your include path. This project also uses the C standard library, including the standard
-math library. There is not an easy way around this that I know of, since I use specifically sized integer types
-and several standard functions, particularly the `malloc` family. I would like to add the flexibility to avoid 
-linking with the standard library in the future, but my knowledge here is not extensive. One of my goals with 
-design was to limit allocations as much as possible, so this should not be a major issue, but there is still
-much room for improvement!
+The provided Makefile *should* build the project to a static library, which you can add in your dependencies folder and link to during your project's compilation. In the future I plan to support building to and installing as a shared library, but I'm learning as I go.
