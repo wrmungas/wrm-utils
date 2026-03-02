@@ -8,7 +8,7 @@ See the [development log](log.md) for thoughts and plans around each version and
 ### Reference Table
 
 Status is determined by whether changes are in the works for a module; in the parentheses are the last version
-that changed the API for a module, and the next planned version that will
+that changed the API for a module, and the next version that plans to change it
 
 | Name | Header | Status | Doc Page | Features |
 | --- | --- | --- | --- | --- | 

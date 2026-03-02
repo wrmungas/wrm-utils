@@ -54,9 +54,9 @@ typedef struct wrm_Model {
     vec3 rot;
     vec3 scale;
 
-    wrm_Handle mesh;
-    wrm_Handle texture; // only used when the model has a textured mesh; for now, meshes only use a single texture
-    wrm_Handle shader;
+    wrm_Index mesh;
+    wrm_Index texture; // only used when the model has a textured mesh; for now, meshes only use a single texture
+    wrm_Index shader;
 
     wrm_Tree_Node tree_node; // tree node for model hierarchy
     bool shown;
@@ -71,7 +71,7 @@ typedef struct wrm_Camera {
     vec3 rot;
 } wrm_Camera;
 
-DEFINE_OPTION(GLuint, GLuint);
+wrm_OPTION(GLuint, GLuint);
 
 // resource enumeration
 typedef enum wrm_render_Resource_Type {
@@ -168,14 +168,14 @@ wrm_Option_GLuint wrm_render_compileShader(const char *shader_text, GLenum type)
 // creates a default shader for meshes with per-vertex colors, per-vertex uv's, and both
 bool wrm_render_createDefaultShaders(const char *shader_dir);
 // loads a shader .frag and .vert pair with the given name, from the given directory, with the given format
-wrm_Option_Handle wrm_render_loadAndCreateShader(const char *dir, const char *name, wrm_render_Format format);
+wrm_Option_Index wrm_render_loadAndCreateShader(const char *dir, const char *name, wrm_render_Format format);
 // creates a default pink-and-black error texture
 bool wrm_render_createErrorTexture(void);
 // checks whether resource handle `h` to a resource of type `t` is in use 
 // `caller` should be the name of the calling function, and `context` should explain the context of the check for helpful error messages
 bool wrm_render_exists(wrm_Handle h, wrm_render_Resource_Type t, const char *caller, const char *context);
 // gets the default shader for a given mesh
-wrm_Option_Handle wrm_render_getDefaultShader(wrm_Handle mesh);
+wrm_Option_Index wrm_render_getDefaultShader(wrm_Index mesh);
 // gets the view matrix from the current camera orientation
 void wrm_render_getViewMatrix(mat4 view);
 /*

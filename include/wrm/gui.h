@@ -1,120 +1,149 @@
 #ifndef WRM_GUI_H
 #define WRM_GUI_H
-
-/*
+/* --- HEADER DESCRIPTION -----------------------------------------------------
 
 File gui.h
 
 Created Nov 7, 2025
 by William R Mungas (wrm)
 
-Version: 0.1.0
-(Last modified Nov 14, 2025)
+Last modified Nov 14, 2025
+
+Contributors: 
+wrm: creator
 
 DESCRIPTION:
-Simple guiing system built on top of the wrm rendering system
+Simple 2d GUI system built on top of the wrm rendering system
 
-PROVIDES
-- basic GUI types - panes, text boxes, buttons, sliders
-- font loading; stored as bitmap texture atlas and character info table
-- hierarchical 2d element 
+FEATURES:
+- basic GUI hierarchy: flexible vertical and horizontal Boxes
+- leaf nodes: content, either Text or Image
+- font loading: wraps FreeType and bakes a font loaded at a given size to a 
+    wrm_Texture as an atlas
 
 REQUIREMENTS:
+- wrm common functionality
+- wrm render and memory; should be initialized after and shut down before both
 - FreeType library must be installed/linked with
+
+---------------------------------------------------------------------------- */
+
+#include "common.h"
+#include "memory.h"
+#include "render.h"
+#include "input.h"
+
+#define wrm_NAMESPACE(name) wrm_gui_ ## name
+
+/* --- TYPE DECLARATIONS --------------------------------------------------- */
+
+/* 
+Represents the positioning of a root element of a tree,
+relative to the screen or other elements 
 */
+typedef struct wrm_gui_Position 
+wrm_gui_Position;
 
-#include "wrm/common.h"
-#include "wrm/memory.h"
-#include "wrm/render.h"
-#include "wrm/input.h"
-
-/*
-Constants
+/* 
+Represents the gaps in pixels between a the edges of a box's 
+outer and inner bounding rectangles
 */
+typedef struct wrm_gui_Padding 
+wrm_gui_Padding;
 
-enum wrm_gui_Pos_Options { WRM_LEFT = 0, WRM_RIGHT, WRM_CENTER, WRM_TOP, WRM_BOTTOM };
-
-/*
-Type declarations
+/* 
+Represents the rules for how a box should internally compute 
+the layout of its children 
 */
+typedef struct wrm_gui_Layout
+wrm_gui_Layout;
 
-/* union of all gui elements */
-typedef union wrm_gui_Element wrm_gui_Element;
-
-typedef struct wrm_gui_Alignment wrm_gui_Alignment;
-
-typedef struct wrm_gui_Properties wrm_gui_Properties;
-
-/* Represents a colored or textured pane as a background for other elements */
-typedef struct wrm_Pane wrm_Pane;
-/* Represents a box of text; should probably have a semi- or fully transparent parent pane */
-typedef struct wrm_Text wrm_Text;
-
-typedef struct wrm_Image wrm_Image;
-
-
-/*
-Type definitions
+/* 
+Represents a rectangle of screen pixels, 
+used to define bounding boxes 
 */
+typedef struct wrm_gui_Rect
+wrm_gui_Rect;
 
-// implicitly relative to top left; all values in pixels
-struct wrm_gui_Alignment {
-    i32 x;
-    i32 y;
-    u32 width; // width in pixels
-    u32 height; // height in pixels
-    // to add: which point of the element is this referring to, and where on screen is it relative to
-    u8 x_is; // which point on the element x is
-    u8 x_from; // which point on screen x is relative to
-    u8 y_is; // which point on the element y is
-    u8 y_from; // which point on screen y is relative to
+/* Represents a container for other elements */
+typedef struct wrm_gui_Box
+wrm_gui_Box;
+
+/* Represents text content */
+typedef struct wrm_gui_Text 
+wrm_gui_Text;
+
+/* Represents image content */
+typedef struct wrm_gui_Image 
+wrm_gui_Image;
+
+wrm_ENUM(Anchors, u8, extern, 
+    top_left, top, top_right, 
+    left, center, right, 
+    bottom_left, bottom, bottom_right
+);
+
+/* --- TYPE DEFINITIONS ---------------------------------------------------- */
+
+struct wrm_gui_Position {
+    i16 x;
+    i16 y;
+    u8 which;
+    u8 from;
 };
 
-struct wrm_gui_Properties {
-    enum { WRM_GUI_TEXT, WRM_GUI_PANE, WRM_GUI_IMAGE} type;
-    wrm_gui_Alignment alignment;
-    wrm_Tree_Node tree_node;
-    bool shown;
-    bool children_shown;
+struct wrm_gui_Padding {
+    u16 top, left, bottom, right;
+};
+
+#define wrm_PAD_ALL(val) (wrm_gui_Padding) {val, val, val, val}
+
+struct wrm_gui_Layout {
+    wrm_gui_Padding padding;
+    u16 max_width, 
+        max_height, 
+        min_width, 
+        min_height;
+    bool vertical;
+    u16 child_gap;
+
+};
+
+union wrm_gui_Content {
+    
+};
+
+struct wrm_gui_Box {
+    wrm_Index parent;
+    wrm_Index root;
+    u8 children;
+    union {
+        wrm_Index content;
+        wrm_Index child;
+        wrm_Index children;
+    };
 };
 
 struct wrm_Text {
-    wrm_gui_Properties properties;
+    wrm_Index font;
     const char *src_text;
-    wrm_Handle font;
     wrm_RGBA text_color;
-    u32 line_spacing; // pixels between each line
-    u32 pixel_limit; // maximum length of each line
-    bool wrap; // whether or not to wrap a line upon reaching the pixel limit
-};
-
-struct wrm_Pane {
-    wrm_gui_Properties properties;
-    wrm_RGBA color;
-    u32 children;
-    u8 child_count;
-    bool show_children;
+    u16 max_width; // maximum width of a line in pixels
+    u16 max_height; // maximum height of lines, in pixels
+    u8 line_gap; // pixels between each line
+    u8 char_gap;
+    bool wrap; // whether or not to wrap a line upon reaching the width, or just stop
 };
 
 struct wrm_Image {
-    wrm_gui_Properties properties;
-    wrm_Handle image_texture;
+    wrm_Index image_texture;
+    u16 max_width;
+    u16 max_height;
 };
-
-
-union wrm_gui_Element {
-    wrm_gui_Properties properties;
-    wrm_Text text;
-    wrm_Pane pane;
-    wrm_Image image;
-};
-
 
 /* 
 Constants
 */
-
-extern wrm_Handle WRM_GUI_NONE;
 
 /*
 Globals
@@ -138,36 +167,33 @@ void wrm_gui_quit(void);
 // font
 
 /* Load a font from a given font file */
-wrm_Option_Handle wrm_gui_loadFont(const char *path);
+wrm_Index wrm_gui_loadFont(const char *path);
 
-// all elements
-bool wrm_gui_setAlignment(wrm_Handle element, wrm_gui_Alignment alignment);
-bool wrm_gui_setShown(wrm_Handle element, bool shown);
-bool wrm_gui_setChildrenShown(wrm_Handle element, bool shown);
-bool wrm_gui_addChild(wrm_Handle parent, wrm_Handle child);
-bool wrm_gui_removeChild(wrm_Handle parent, wrm_Handle child);
+// content
 
-// text box
+/* Create an image from a texture */
+wrm_Index wrm_gui_createImage(wrm_Index texture);
+/* Create a text box element */
+wrm_Index wrm_gui_createText(wrm_gui_Text *text);
 
-/* Create a text box gui element */
-wrm_Option_Handle wrm_gui_createText(wrm_gui_Properties properties, wrm_Handle font, wrm_RGBA text_color, const char *src, u32 spacing);
- 
-// pane
+// box
 
-/* Create a pane element */
-wrm_Option_Handle wrm_gui_createPane(wrm_gui_Properties properties, wrm_RGBA color);
 
-// image
+void wrm_gui_setLayout(wrm_Index box, wrm_gui_Layout *layout);
+bool wrm_gui_setContent(wrm_Index box, wrm_Index content);
 
-/* Create an image element - will forcibly overwrite the `type` to WRM_GUI_IMAGE in `properties` regardless of what is passed in */
-wrm_Option_Handle wrm_gui_createImage(wrm_gui_Properties properties, wrm_Handle texture);
+void wrm_gui_hide(wrm_Index box);
+void wrm_gui_show(wrm_Index box);
+
+void wrm_gui_hideChildren(wrm_Index box);
+void wrm_gui_showChildren(wrm_Index box);
+
+bool wrm_gui_addChild(wrm_Index box, wrm_Index child);
+bool wrm_gui_removeChild(wrm_Index box, wrm_Index child);
 
 // debug
 
-/* Print out the data for a given alignment */
-void wrm_gui_debugAlignment(wrm_gui_Alignment a);
-void wrm_gui_debugElement(wrm_Handle element);
 /* Create a test image */
-wrm_Option_Handle wrm_gui_createTestImage(void);
+wrm_Index wrm_gui_createTestImage(void);
 
 #endif

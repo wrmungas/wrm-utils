@@ -11,7 +11,7 @@ WRM_SUBDIRS = common gui input linmath memory render
 
 # compiler variables
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99
+CFLAGS = -Wall -Wextra -std=c11
 IFLAGS = -I$(INC_DIR) -I/usr/local/include/freetype2 -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include
 LFLAGS = -lm -lSDL2 -lGL -lfreetype -lconfig
 AR = ar 
