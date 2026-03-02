@@ -26,8 +26,6 @@ As an overview:
 - `gui`: 2d GUI primitives: panes, textboxes, and images
 
 Short-term planned features include:
-- removal of `wrmh` - will reconsider header-only versions of the project at a later time but currently this just takes up
-space, is horrendously outdated compared to the rest of the project, and should NOT be used
 - addition of a `log` module to remove dependence on `common` for logging functions
 - reworking `memory` data structures (and adding a few new ones) and creating a distinct `Index` type (rather than just a `u32` typedef; yes, this is a band-aid over my choice to use a language with the type-safety of C)
 
@@ -36,9 +34,9 @@ Longer-term plans include:
 - reworking the model format to support things like skeletal animation
 - adding the ability to directly load .obj files to `wrm_Model`s
 - extracting window creation to a `window` or `os` module to prevent everything depending on `render`
-- improving `gui` layout control (now that I'm more familiar with CSS, I have a lot of ideas); possibly supporting rendering for the Clay layout library
+- improving `gui` layout control (now that I'm more familiar with CSS, I have a lot of ideas); possibly using the Clay layout library
 - improving `input` to handle things outside of keyboard-and-mouse PC world; I'd like to be able to use controllers as well!
-- reworking the Makefile to build to a shared library
+- reworking the Makefile to build to a shared library (DONE!)
 - reworking the project to minimize dependencies and possibly include its own OS compatibility layer
 
 # Dependencies
