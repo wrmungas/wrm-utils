@@ -1,4 +1,6 @@
-/*
+#ifndef WRM_DSA_H
+#define WRM_DSA_H
+/* --- HEADER DESCRIPTION -----------------------------------------------------
 
 File dsa.h
 
@@ -16,4 +18,7 @@ FEATURES:
 
 REQUIREMENTS:
 - FreeType library must be installed/linked with
-*/
+
+---------------------------------------------------------------------------- */
+
+#endif // end include guards
