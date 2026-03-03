@@ -59,13 +59,22 @@ typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
-
 /* --- UNSIGNED INTEGER SHORTHANDS ----------------------------------------- */
 
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef unsigned long ulong;
+
+/* --- REFERENCE TYPE ------------------------------------------------------ */
+
+// offers indirection with extra safety and flexibility
+typedef struct wrm_Ref wrm_Ref;
+
+struct wrm_Ref {
+    u32 src;
+    u32 idx;
+};
 
 /* --- TYPE MACROS --------------------------------------------------------- */
 
@@ -77,16 +86,18 @@ For function pointers
 /*
 Create an enum as a struct with the value names as fields
 Allows me to namespace with dot syntax rather than creating a lot of
-ugly globally-visible macros
+ugly globally-visible macros (besides this one, I suppose)
 */
-#define wrm_ENUM(name, type, qualifiers, ...) struct __wrm_ ## name ## _Enum { type __VA_ARGS__; }; \
-qualifiers struct __wrm_ ## name ## _Enum const wrm_ ## name
+#define wrm_ENUM(name, type, qualifiers, ...) struct __wrm_ ## name ## _Enum \
+{ type __VA_ARGS__; }; qualifiers struct __wrm_ ## name ## _Enum const wrm_ \
+## name
 
 /* 
 Defines the values of each field of an enum struct
 IMPORTANT: values must match the number it was declared with and must be unique
 */
-#define wrm_ENUM_VALUES(name, ...) struct __wrm_ ## name ## _Enum const wrm_ ## name = { __VA_ARGS__ }
+#define wrm_ENUM_VALUES(name, ...) struct __wrm_ ## name ## _Enum const wrm_ \
+## name = { __VA_ARGS__ }
 
 /* --- PAIR AND OPTION TYPES ----------------------------------------------- */
 
@@ -102,7 +113,8 @@ ex:
 results in 
 `wrm_Pair_int_cstr { int int_val; const char * cstr_val; }`
 */
-#define wrm_PAIR(t1, t1_name, t2, t2_name) typedef struct wrm_Pair_ ## t1_name ## _ ## t2_name { \
+#define wrm_PAIR(t1, t1_name, t2, t2_name) typedef struct wrm_Pair_ ## \
+t1_name ## _ ## t2_name { \
     t1 t1_name ## _val; \
     t2 t2_name ## _val; \
 } wrm_Pair_ ## t1_name ## _ ## t2_name
@@ -144,7 +156,7 @@ results in
 */
 #define wrm_LIST(t, t_name) typedef struct wrm_List_ ## t_name { \
     u32 cap; \
-    u32 len; \
+    u32 cnt; \
     t *data; \
 } wrm_List_ ## t_name
 
