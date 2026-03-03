@@ -32,7 +32,7 @@ FEATURES:
 
 REQUIREMENTS:
 Uses C standard library
-Must link with C standard math
+Must link with C standard math (-lm)
 
 ---------------------------------------------------------------------------- */
 
@@ -44,7 +44,7 @@ Must link with C standard math
 #include <stddef.h> // size_t, NULL! thank fuck
 #include <stdint.h> // int<n>_t, uint<n>_t
 #include <string.h> // string comparison, mostly so I can wrap it myself
-#include <stdarg.h> // so I can do unnecessarily complicated things with varargs :P
+#include <stdarg.h> // so I can do unnecessarily complicated things :P
 #include <math.h> // so I can do fucking math
 
 /* --- SIZED INTEGER TYPES ------------------------------------------------- */

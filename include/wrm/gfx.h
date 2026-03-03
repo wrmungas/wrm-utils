@@ -7,7 +7,7 @@ Created Oct 29, 2025
 by William R Mungas (wrm)
 
 Version: 0.1.0 
-(Last modified Feb 24, 2025)
+(Last modified Mar 3, 2026)
 
 DESCRIPTION:
 Rendering framework that uses SDL to create a window, which is exposed 
@@ -411,4 +411,4 @@ gets forward and right vectors in the x-z plane from a given rotation
 */
 void wrm_gfx_getOrientationXY(const vec3 rot, vec3 forward, vec3 right);
 
-#endif
+#endif // end include guards
