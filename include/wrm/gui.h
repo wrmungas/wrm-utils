@@ -30,7 +30,7 @@ REQUIREMENTS:
 
 #include "common.h"
 #include "memory.h"
-#include "render.h"
+#include "graphics.h"
 #include "input.h"
 
 #define wrm_NAMESPACE(name) wrm_gui_ ## name
@@ -43,36 +43,30 @@ relative to the screen or other elements
 */
 typedef struct wrm_gui_Position 
 wrm_gui_Position;
-
 /* 
 Represents the gaps in pixels between a the edges of a box's 
 outer and inner bounding rectangles
 */
 typedef struct wrm_gui_Padding 
 wrm_gui_Padding;
-
 /* 
 Represents the rules for how a box should internally compute 
 the layout of its children 
 */
 typedef struct wrm_gui_Layout
 wrm_gui_Layout;
-
 /* 
 Represents a rectangle of screen pixels, 
 used to define bounding boxes 
 */
 typedef struct wrm_gui_Rect
 wrm_gui_Rect;
-
 /* Represents a container for other elements */
 typedef struct wrm_gui_Box
 wrm_gui_Box;
-
 /* Represents text content */
 typedef struct wrm_gui_Text 
 wrm_gui_Text;
-
 /* Represents image content */
 typedef struct wrm_gui_Image 
 wrm_gui_Image;
