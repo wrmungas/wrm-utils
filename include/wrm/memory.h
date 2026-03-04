@@ -1,7 +1,6 @@
 #ifndef WRM_MEMORY_H
 #define WRM_MEMORY_H
-
-/*
+/* --- HEADER DESCRIPTION -----------------------------------------------------
 File memory.h
 
 Created  Nov 14, 2025 
@@ -10,11 +9,16 @@ by William R Mungas (wrm)
 (Last modified Nov 14, 2025)
 
 DESCRIPTION:
-Basic memory structures for efficient applications
+Basic memory management schemes for applications. Each type of allocator takes 
+an initial block of memory; the user decides whether this should be allowed to 
+grow or not.
 
 PROVIDES:
-- pool type: a collection of objects of a known size, to be randomly accessed, modified, or removed
-- stack type: a list of elements of known size with stack behavior, growing until a rollback
+- pool type: a collection of objects of a known size, to be randomly accessed,
+    modified, or removed
+- stack type: a list of elements of known size with stack behavior, growing 
+    until a rollback
+- aligned_stack:
 
 REQUIREMENTS:
 Must link with C standard library
@@ -23,40 +27,31 @@ Must link with C standard library
 
 #include "wrm/common.h"
 
-#define WRM_MEMORY_GROWTH_FACTOR 2
+/* --- Compile-time Constants ---------------------------------------------- */
 
+#define WRM_MEMORY_GROWTH_FACTOR 2
 #define WRM_POOL_MAX_CAPACITY UINT32_MAX
 
-/*
-Type declarations
-*/
+/* --- Type declarations --------------------------------------------------- */
 
-// represents a safe index into a data structure
-typedef struct wrm_Index wrm_Index;
-// represents a pool of elements
-typedef struct wrm_Pool wrm_Pool;
+// represents a safe reference to an object
+typedef struct wrm_Ref
+wrm_Ref;
+// represents a pool allocator
+typedef struct wrm_Pool 
+wrm_Pool;
 // represents a continually-growing stack of elements: may be used as an arena, only reset on a manual call to reset()
-typedef struct wrm_Stack wrm_Stack; 
-// represents a tree node with exactly two children
-typedef struct wrm_Binary_Tree_Node;
-// represents a tree of nodes with exactly two children
-typedef struct wrm_Binary_Tree;
+typedef struct wrm_Stack 
+wrm_Stack; 
 
-// TODO: possibly add BST?
+/* --- Type definitions ---------------------------------------------------- */
 
-// represents a tree node with an arbitrary number of children < 256
-typedef struct wrm_Tree_Node wrm_Tree_Node;
-// represents a stack- and pool-friendly, handle-based tree
-typedef struct wrm_Tree wrm_Tree;
-
-/*
-Type definitions
-*/
-
-struct wrm_Index {
-    u32 val;
+struct wrm_Ref {
+    u32 idx;
     u32 src;
 };
+
+wrm_OPTION(wrm_Ref, wrm_Ref);
 
 struct wrm_Pool {
     void *items; // source array of elements
@@ -68,7 +63,7 @@ struct wrm_Pool {
 
     u32 id; // id for indices
 
-    bool reserve; // whether or not to call wrm_Pool_reserve() automatically when no slots are available
+    bool final; // whether the memory can be resized with realloc()
 };
 
 struct wrm_Stack {
@@ -80,53 +75,24 @@ struct wrm_Stack {
 
     u32 id; // id for indices
 
-    bool reserve; // whether or not to call wrm_List_reserve() automatically when no slots are available
+    bool reserve; // whether the memory can be resized with realloc()
 };
 
-struct wrm_Binary_Node {
-    wrm_Index parent;
-    wrm_Index self;
-    wrm_Index left;
-    wrm_Index right;
-};
-
-struct wrm_Binary_Tree {
-    wrm_Pool nodes;
-    wrm_Pool *src;
-};
-
-struct wrm_Tree_Node {
-    wrm_Index parent; // index of this node's parent in the source pool
-    wrm_Index self; // index of this node in the source pool
-    wrm_Index child_list; // index of this node's child list in the child_lists pool;
-    u8 child_count;
-};
-
-struct wrm_Tree {
-    wrm_Pool *src; // source pool: NOT owned, only referenced
-    wrm_Pool nodes; // pool of nodes in the tree: owned
-    wrm_Pool child_lists;  // auxiliary pool of child lists: owned
-    size_t child_limit; // maximum number of children each node can have
-};
-
-wrm_OPTION(wrm_Index, Index);
-
-
-/*
-Function declarations
-*/
+/* --- Function declarations ----------------------------------------------- */
 
 // cast generic data member to pointer to type
-
 #define wrm_data_AS(buf, t) ((t*)((buf).data))
-
-/*
+/* 
 helper to get the value at a position in a bit vector 
 */ 
 inline bool wrm_bitAt(u8 *bit_vec, u32 idx)
 {
     // TODO: implement
 }
+
+void *wrm_deref(wrm_Ref ref);
+
+
 
 // pool
 
@@ -135,30 +101,28 @@ Initialize a pool of `capacity` elements of `element_size` bytes each
 Returns `true` if the operation was successful
 `reserve` determines whether the pool will automatically allocate space for new elements 
 */
-bool wrm_Pool_init(wrm_Pool *p, size_t capacity, size_t element_size, bool reserve);
-/* 
-Ensure that pool `p` has room for `capacity` total elements by GROWING ONLY 
-Returns `true` if the operation was successful
-*/
-bool wrm_Pool_reserve(wrm_Pool *p, size_t capacity);
+bool wrm_initPool(
+    wrm_Pool *p,
+    void *mem,
+    size_t element_capacity, 
+    size_t element_size, 
+    bool final
+);
 /* 
 Get an available slot (index of an element) from pool `p` 
 */
-wrm_Index wrm_Pool_getSlot(wrm_Pool *p);
+wrm_Ref wrm_poolAlloc(wrm_Pool *p);
 /* 
-Check that the slot at a given index is valid for pool `p`
-- p is not NULL
-- the index is within p
-- the element at the index is in use 
+Free a slot from the pool
 */
-inline bool wrm_Pool_isValid(wrm_Pool *p, wrm_Index idx)
-{
-    return p 
-    && (idx.src) 
-    && (idx.src == p->id) 
-    && (idx.val < p->cap) 
-    && p->in_use[idx.val];
-}
+void wrm_poolFree(wrm_Ref *ref);
+
+// --- STACK 
+
+/*
+Initialize 
+*/
+bool wrm_initStack(wrm_Stack *s, void *mem, size_t mem_size, bool final);
 /* 
 Release the slot at `idx` for reuse, if it wasn't already available, in pool `p` 
 */
