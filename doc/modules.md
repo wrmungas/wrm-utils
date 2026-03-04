@@ -16,7 +16,7 @@ that changed the API for a module, and the next version that plans to change it
 | Memory | `memory.h` | unstable (0.1, 0.2) | [memory](modules/memory.md) | data structures and memory |
 | Log | `log.h` | planned (none, 0.2) | [log](modules/log.md) | message buffering and printing |
 | Linmath | `linmath.h` | unstable (0.1, 0.2) | [linmath](modules/linmath.md) | linear math (extends cglm) |
-| Render | `render.h` | unstable (0.1, 0.2) | [render](modules/render.md) | 3d graphics primitives |
+| Graphics | `graphics.h` | unstable (0.1, 0.2) | [render](modules/render.md) | 3d graphics primitives |
 | GUI | `gui.h` | unstable (0.1, 0.2) | [gui](modules/gui.md) | 2d gui primitives |
 | Input | `input.h` | unstable (0.1, 0.2) | [input](modules/input.md) | keyboard and mouse user input |
 
