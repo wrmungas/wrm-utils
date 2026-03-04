@@ -88,8 +88,8 @@ Create an enum as a struct with the value names as fields
 Allows me to namespace with dot syntax rather than creating a lot of
 ugly globally-visible macros (besides this one, I suppose)
 */
-#define wrm_ENUM(name, type, qualifiers, ...) struct __wrm_ ## name ## _Enum \
-{ type __VA_ARGS__; }; qualifiers struct __wrm_ ## name ## _Enum const wrm_ \
+#define wrm_ENUM(name, type, qualifiers, ...) struct _wrm_ ## name ## _Enum \
+{ type __VA_ARGS__; }; qualifiers struct _wrm_ ## name ## _Enum const wrm_ \
 ## name
 
 /* 
