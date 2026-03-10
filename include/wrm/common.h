@@ -38,7 +38,6 @@ Must link with C standard math (-lm)
 
 /* standard set of includes */
 
-#include <stdlib.h> // malloc and free
 #include <stdio.h> // print and file io functions
 #include <stdbool.h> // booleans! thank fuck
 #include <stddef.h> // size_t, NULL! thank fuck
