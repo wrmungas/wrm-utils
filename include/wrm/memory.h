@@ -23,212 +23,157 @@ PROVIDES:
 REQUIREMENTS:
 Must link with C standard library
 
-*/
+-----------------------------------------------------------------------------*/
 
 #include "wrm/common.h"
 
-/* --- Compile-time Constants ---------------------------------------------- */
+/*--- Compile-time Constants ------------------------------------------------*/
 
-#define WRM_MEMORY_GROWTH_FACTOR 2
-#define WRM_POOL_MAX_CAPACITY UINT32_MAX
+#define mem_GROWTH_FACTOR 2
+#define mem_POOL_MAX_CAPACITY UINT32_MAX
 
-/* --- Type declarations --------------------------------------------------- */
 
-// represents a safe reference to an object
-typedef struct wrm_Ref
-wrm_Ref;
+/*--- Type declarations -----------------------------------------------------*/
+
+// represents a safe reference to an object in memory
+typedef struct mem_Ref
+mem_Ref;
 // represents a pool allocator
-typedef struct wrm_Pool 
-wrm_Pool;
-// represents a continually-growing stack of elements: may be used as an arena, only reset on a manual call to reset()
-typedef struct wrm_Stack 
-wrm_Stack; 
+typedef struct mem_Pool 
+mem_Pool;
+// represents a stack allocator: continually grows, only cleared on a call
+// to reset()
+typedef struct mem_Stack 
+mem_Stack; 
 
-/* --- Type definitions ---------------------------------------------------- */
+/*--- Type definitions ------------------------------------------------------*/
 
-struct wrm_Ref {
+struct mem_Ref {
     u32 idx;
     u32 src;
 };
 
-wrm_OPTION(wrm_Ref, wrm_Ref);
+wrm_OPTION(mem_Ref, Ref);
 
-struct wrm_Pool {
-    void *items; // source array of elements
-    u8 *in_use; // bit vector to track which slots are available
+struct mem_Pool {
+    void *data; // pointer to memory of `item_cap` x `item_size` bytes
+    size_t item_cap; // max number of items the pool can hold
+    size_t item_size; // size in bytes of each item
 
-    size_t item_size; // size in bytes of each slot/item
-    size_t cap; // number of total slots for items in the pool
-    size_t used; // number of slots that are taken up
+    u32 id;
+    u32 free_head; // start of the free list
+    u32 free_cnt; // number of free slots available
 
-    u32 id; // id for indices
-
-    bool final; // whether the memory can be resized with realloc()
+    bool final; // whether the block of memory can be reallocated
 };
 
-struct wrm_Stack {
-    void *data; // source array of elements
+struct mem_Stack {
+    void *data; // pointer to memory of `cap` bytes
+    size_t cap; // maximum number of bytes available
+    size_t top; // index of the byte one past the top of the stack
 
-    size_t item_size; // size in bytes of each item in the stack
-    size_t cap;
-    size_t len;
-
-    u32 id; // id for indices
-
-    bool reserve; // whether the memory can be resized with realloc()
+    bool final; // whether the block of memory can be reallocated
 };
 
-/* --- Function declarations ----------------------------------------------- */
 
-// cast generic data member to pointer to type
-#define wrm_data_AS(buf, t) ((t*)((buf).data))
-/* 
-helper to get the value at a position in a bit vector 
-*/ 
-inline bool wrm_bitAt(u8 *bit_vec, u32 idx)
-{
-    // TODO: implement
-}
-
-void *wrm_deref(wrm_Ref ref);
+/*--- Function declarations -------------------------------------------------*/
 
 
+#define mem_NULL(ref) (!ref.src)
 
-// pool
-
-/* 
-Initialize a pool of `capacity` elements of `element_size` bytes each
-Returns `true` if the operation was successful
-`reserve` determines whether the pool will automatically allocate space for new elements 
+/*
+Initialize the memory module with an internal resize() function
+Must match the signature of the standard `realloc`
+If NULL, no reallocation is allowed even if allocators have non-final memory
 */
-bool wrm_initPool(
-    wrm_Pool *p,
-    void *mem,
-    size_t element_capacity, 
-    size_t element_size, 
+void mem_init(wrm_FUNC(resize, void*, void*, size_t));
+
+//--- Pool ---
+
+/*
+Initialize a pool memory allocator with room for `item_cap` elements, each 
+`item_size` bytes.
+If final, the memory will not be automatically resized internally and 
+allocations may fail
+*/
+bool mem_init_pool(
+    mem_Pool *p, 
+    void *buf, 
+    size_t isize, 
+    size_t icap,
     bool final
 );
-/* 
-Get an available slot (index of an element) from pool `p` 
-*/
-wrm_Ref wrm_poolAlloc(wrm_Pool *p);
-/* 
-Free a slot from the pool
-*/
-void wrm_poolFree(wrm_Ref *ref);
-
-// --- STACK 
 
 /*
-Initialize 
+Get an open 'bucket' in the pool
+If there are no slots and the pool cannot grow, returns a null Ref
 */
-bool wrm_initStack(wrm_Stack *s, void *mem, size_t mem_size, bool final);
-/* 
-Release the slot at `idx` for reuse, if it wasn't already available, in pool `p` 
-*/
-inline void wrm_Pool_freeSlot(wrm_Pool *p, wrm_Index idx)
-{
-    if(!wrm_Pool_isValid(p, idx)) { return; }
-    p->in_use[idx.val] = false;
-    p->used--;
-}
-/* Get a safe void* to a location `offset` bytes from the start of the element at `idx`; returns NULL if `p` is NULL, `idx` is invalid, or `offset` is too big */
-inline void *wrm_Pool_offsetAt(wrm_Pool *p, wrm_Index idx, size_t offset)
-{
-    return (wrm_Pool_isValid(p, idx) && (offset < p->item_size))  ? (u8*)p->data + idx.val * p->item_size + offset : NULL;
-}
-/* Get a safe void* to a location in a pool; returns NULL if `p` is NULL or `idx` is invalid (out-of-bounds or freed slot) */
-inline void *wrm_Pool_at(wrm_Pool *p, wrm_Index idx)
-{
-    return wrm_Pool_offsetAt(p, idx, 0);
-}
-/* 
-Release the resources associated with pool `p`
-Iterates over the pool contents
-If `delete()` is not null, it is called on each in-use element
-After iteration, frees the pool's memory
-`p` is no longer considered usable after this point  
-*/
-void wrm_Pool_delete(wrm_Pool *p, wrm_FUNCTION(delete, void, void *element));
+mem_Ref mem_palloc(mem_Pool *p);
 
-
-// stack
-
-/* 
-Initialize a stack with room for `capacity` elements of size `element_size`
-Returns `true` if the operation was successful
-If `auto_reserve` is false you must manually allocate additional capacity with `reserve()` 
-*/
-bool wrm_Stack_init(wrm_Stack *s, size_t capacity, size_t element_size, bool auto_reserve);
-/* 
-Ensure that stack `s` has room for `capacity` total elements
-Returns `true` if the operation was successful 
-*/
-bool wrm_Stack_reserve(wrm_Stack *s, size_t capacity);
-/* 
-If `capacity` is <= the stack's current capacity, shrinks the stack's capacity to use less memory
-Returns `true` if the operation was successful
-Never automatically called 
-*/
-bool wrm_Stack_shrink(wrm_Stack *s, size_t capacity);
 /*
-Grow's the stack's length by one and returns the index of the top element
-Fails if the stack cannot grow
+Get the slot in a pool that a given Ref points to
+If the Ref is null or invalid (i.e. belonging to a different memory block),
+returns NULL
 */
-wrm_Index wrm_Stack_push(wrm_Stack *s);
-/* Roll back stack `s` to `len`; all elements beyond `len` are now considered invalid */
-inline void wrm_Stack_reset(wrm_Stack *s, size_t len)
-{
-    if(len > s->len) return;
-    s->len = len;
-}
-/* Get a safe void* to a location `offset` bytes from the start of the element at `idx`; returns NULL if `s` is NULL, `idx` is invalid, or `offset` is too big */
-inline void *wrm_Stack_offsetAt(wrm_Stack *s, wrm_Index idx, size_t offset)
-{
-    return (s && (idx.val < s->len) && (offset < s->item_size))  ? (u8*)s->data + idx.val * s->item_size + offset : NULL;
-}
-/* Get a safe void* to the location at `idx` in stack `s` returns NULL if `s` is NULL or the index is invalid (beyond top of stack) */
-inline void *wrm_Stack_at(wrm_Stack *s, wrm_Index idx)
-{
-    return wrm_Stack_offsetAt(s, idx, 0);
-}
-/* 
-Release the resources associated with stack `s`
-Iterates over stack contents
-If `delete()` is not null, it is called on each element 
-Then frees the stack memory
-Stack is no longer considered usable after this point 
+void *mem_pderef(mem_Pool *p, mem_Ref r);
+
+/*
+Free a slot in a pool, and alters the Ref to be null
+Does nothing with a null Ref
 */
-void wrm_Stack_delete(wrm_Stack *p, wrm_FUNCTION(delete, void, void*));
+void mem_pfree(mem_Pool *p, mem_Ref *r);
 
-
-// tree 
-
-/* 
-Initializes a tree from a source buffer (from a pool/stack)
-Creates an auxiliary pool to hold the lists of each node's children
-`auto_reserve` determines whether the children pool can resize automatically to fit demand, and should be `true` unless memory is constrained
+/*
+Calls the given delete function on all elements within the pool;
+then calls the given free function on the overall memory block
+Marks the pool as unusable
 */
-bool wrm_Tree_init(wrm_Tree *tree, wrm_Pool *src, size_t offset, size_t child_limit, bool auto_reserve);
-/* simplified tree node accessor */
-inline wrm_Tree_Node *wrm_Tree_at(wrm_Tree *tree, wrm_Index idx)
-{
-    if(!tree || !tree->src ) { return NULL; }
-    return wrm_Pool_offsetAt(tree->src, idx, tree->offset);
-}
-/* Associates a child and parent, if possible */
-bool wrm_Tree_addChild(wrm_Tree *tree, u32 parent, u32 child);
-/* Dissociates a child and parent, if possible */
-bool wrm_Tree_removeChild(wrm_Tree *tree, u32 parent, u32 child);
-/* Checks whether the parent has `child` in its child list */
-bool wrm_Tree_hasChild(wrm_Tree *tree, u32 parent, u32 child);
-/* Makes a node a root in the tree: if it has a parent, orphan it */
-bool wrm_Tree_makeRoot(wrm_Tree *tree, u32 node);
-/* Dissociates all nodes and frees the lists of children */
-void wrm_Tree_delete(wrm_Tree *tree);
-/* print the contents of the tree node */
-void wrm_Tree_debugNode(wrm_Tree_Node *tn, wrm_Tree *tree);
+void mem_delete_pool(
+    mem_Pool *p, 
+    wrm_FUNC(delete, void, void*), 
+    wrm_FUNC(free, void, void*)
+);
 
+//--- Stack ---
 
+/*
+Initialize a stack memory allocator with a memory block of `size` total bytes
+If final, the block will not be resized internally and allocations may fail
+*/
+bool mem_init_stack(mem_Stack *s, void *buf, size_t size, bool final);
+
+/*
+Allocate memory in a stack scheme
+Grows the used part of the stack; if there is not enough room for the requested
+number of bytes, returns a null Ref
+*/
+mem_Ref mem_stalloc(mem_Stack *s, size_t bytes);
+
+/*
+Allocate memory in a stack scheme, aligned to the next n-byte boundary
+Grows the used part of the stack; if there is not enough room for the requested
+number of bytes (plus any padded bytes to meet the requested alignment), 
+returns a null Ref
+*/
+mem_Ref mem_stalloc_aligned(mem_Stack *s, size_t bytes, size_t n);
+
+/*
+Get the memory in a stack block that a Ref points to
+If the Ref is null or invalid (i.e. pointing to a different memory block),
+returns NULL
+*/
+void *mem_stderef(mem_Stack *s, mem_Ref r);
+
+/*
+Reset a stack (clearing the size to zero)
+All previous Refs into the memory block are considered invalid
+*/
+void *mem_streset(mem_Stack *s);
+
+/*
+Calls the given free function on its memory block (if non-null)
+Marks the stack as unusable
+*/
+void mem_delete_stack(mem_Stack *s, wrm_FUNC(free, void, void*));
 
 #endif
