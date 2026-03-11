@@ -19,22 +19,26 @@ typedef struct wrm_Test {
     bool (*test)(void);
 } wrm_Test;
 
+#define wrm_TESTDEF(name) bool name()
+
 #define wrm_TEST(name) (wrm_Test){ ### name, name}
 
-#define wrm_RUN(suite, tests) int main(int argc, char **argv) \
+#define wrm_FAIL() printf("Failed on line %d", __LINE__); return false
+
+#define wrm_PASS() printf("Passed!"); return true
+
+#define wrm_RUN(suite, tests, pre_each, post_each) int main(int argc, char **argv) \
 {\
     printf("%s:\n", suite);\
     int passing = 0;\
     for(int i = 0; i < sizeof(tests); i++) {\
+        pre_each();\
         printf(" [%s]: ", tests[i].name);\
-        bool result = tests[i].test();\
-        if(result) { passing++; }\
-        printf("%s\n", result ? "Success" : "Failure");\
+        if(tests[i].test()) { passing++; }\
+        post_each();\
     }\
-    printf("%d / %d total passing\n");\
+    printf("%f%% passing (%d / %d total) \n", (float) passing / (float) sizeof(tests), passing, sizeof(tests));\
     exit(passing == sizeof(tests) ? 0 : 1);\
 }
-
-#define wrm_UNIT(name) bool name(void)
 
 #endif // end include guards
