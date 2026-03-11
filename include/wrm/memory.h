@@ -29,8 +29,8 @@ Must link with C standard library
 
 /*--- Compile-time Constants ------------------------------------------------*/
 
-#define mem_GROWTH_FACTOR 2
-#define mem_POOL_MAX_CAPACITY UINT32_MAX
+#define MEM_GROWTH_FACTOR 2
+#define MEM_POOL_MAX_CAPACITY UINT32_MAX
 
 
 /*--- Type declarations -----------------------------------------------------*/
@@ -45,6 +45,9 @@ mem_Pool;
 // to reset()
 typedef struct mem_Stack 
 mem_Stack; 
+
+typedef struct mem_Hexdump_Args
+mem_Hexdump_Args;
 
 /*--- Type definitions ------------------------------------------------------*/
 
@@ -75,11 +78,40 @@ struct mem_Stack {
     bool final; // whether the block of memory can be reallocated
 };
 
+struct mem_Hexdump_Args {
+    void *data; // block of memory to print
+
+    struct {
+        struct {
+            char *pre; // sequence to print before the bytes
+            char *delim; // delimiter to print between each byte
+            char *post; // sequence to print after the bytes
+        } hex; // formatting for hex lines
+
+        struct {
+            char *pre; // sequence to print before the chars
+            char *delim; // delimiter to print between each ascii char
+            char *post; // sequence to print after the chars
+        } ascii;
+    } fmt;
+
+    u32 bytes; // how many bytes to print, in total
+    u32 bytes_per_line; // how many bytes to print on each line
+
+    bool ascii; // whether or not to include ascii lines below each hex line
+};
+
 
 /*--- Function declarations -------------------------------------------------*/
 
+#define mem_null (mem_Ref){.src = 0, .idx = 0}
 
-#define mem_NULL(ref) (!ref.src)
+/*
+Prints the hexadecimal characters of a block of memory
+Options controlled through `args`
+TODO: incorporate this into log
+*/
+void mem_hexdump(mem_Hexdump_Args *args);
 
 /*
 Initialize the memory module with an internal resize() function
