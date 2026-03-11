@@ -177,6 +177,12 @@ void wrm_fail(u8 code, const char *module, const char *function,
     const char *format, ...)
 // GCC PRINTF VARARGS WARNINGS
 __attribute__((format(printf, 4, 5)));
+
+/*
+Compares two c-style strings: simple wrapper around strcmp for usability
+*/
+bool wrm_cstr_equals(const char *str1, const char *str2);
+
 /*
 Compares two c-style strings for up to `n` characters
 Returns `true` if they are equal
