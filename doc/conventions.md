@@ -10,10 +10,11 @@ editors, this looks much better on my screen when I tile windows side-by-side,
 which I do frequently.
 
 Keep things that super easily fit on one line to just that. For example, 
-one-off single-step if statements are fine to go on one line like so:
+one-off single-step `if` statements are fine to go on one line like so:
 ```c
 if(condition) { action(); }
 ```
+
 A function definition's opening brace goes on the next line, like so:
 ```c
 bool create()
@@ -21,6 +22,7 @@ bool create()
     // ... implementation
 }
 ```
+
 For functions for which the declaration does not fit, move all arguments to a vertical list indented once, like so:
 ```c
 int long_function(
@@ -56,12 +58,11 @@ is worth the time/space taken up by the typing the full name. Do not be afraid
 of long names, but neither try to proliferate them. 
 
 For specific C constructs:
-- variables are generally in `snake_case`
+- variables and functions are in `snake_case`
 - compile-time constants and macros are in `SCREAMING_SNAKE_CASE`
 - structs, unions, and enums are generally typedef'ed and in `PascalCase`
-- functions are generally in `camelCase`
 - all names at global scope are prefixed with the module, like `wrm_`, `mem_`, 
-    or `gfx_`: this especially important for user-visible names
+    or `gfx_`: especially important for user-visible names
 
 ## Comments
 
@@ -69,15 +70,67 @@ Comment where necessary to describe the reasoning behind complex code (mainly
 for future me). Always comment function declarations to document the purpose, 
 arguments, return value, and anything non-obvious about behavior. 
 
-Use comments to structure files into sections as well:
+Use comments to structure files into sections as well
 
-## Structure
+## Source Code Structure
 
 Use comments to structure files into logical sections.
 
 Headers should always be organized into the following sections:
 - Description
+- Other includes
 - Compile-time constants and macros
 - Type declarations
 - Type definitions
 - Global variables (marked as `extern`)
+- Function declarations
+
+Implementation files should always be organized into the following sections:
+- Global variables (this file is where they live)
+- Helper declarations
+- Function definitions
+- Helper definitions
+
+## Directory Structure
+The project follows this structure:
+/
+- doc/
+    - Markdown documentation for the project
+- include/
+    - (other)/
+        - headers for other code
+    - wrm/
+        - headers for wrm code
+- resources/
+    - resources used in testing
+- src/
+    - glad/
+        - source for glad
+    - stb/
+        - file defining stb implementation
+    - shaders/
+        - default shader files
+    - wrm/
+        - (module)/
+            - internal header for each module
+            - source files implementing a group of related operations
+- test/
+    - common test header
+    - test source files for each module
+
+
+## Commits
+
+Commit messages are all implicitly related to the content of the branch they are on
+
+Commits should be done frequently for small sets of related changes to a few files
+
+Prefixes relate to the type of action:
+- `[H]`: (header):create/edit header files
+- `[I]`: (implementation): create/edit implementation files (takes precedence over header)
+- `[T]`: (test): create/edit test files (should be separate from I)
+- `[D]`: (documentation): add documentation, either in comments in source files (including reorganizing 
+    source files without changing the code), or in separate markdown docs
+- `[S]`: (start/skeleton): add empty/boilerplate files for a new feature
+- `[R]`: (refactor): change a bunch of existing files to restructure something - doesn't need to resolve
+    all of the issues introduced by this
