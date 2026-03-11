@@ -24,6 +24,11 @@ void wrm_fail(u8 code, const char *module, const char *function, const char *for
     exit(code);
 }
 
+bool wrm_cstr_eq(const char *str1, const char *str2)
+{
+    return strcmp(str1, str2) == 0;
+}
+
 bool wrm_cstrn_eq(size_t n, const char *str1, const char *str2) 
 {
     return strncmp(str1, str2, n) == 0;
