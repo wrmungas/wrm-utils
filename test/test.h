@@ -21,23 +21,23 @@ typedef struct wrm_Test {
 
 #define wrm_TESTDEF(name) bool name()
 
-#define wrm_TEST(name) (wrm_Test){ ### name, name}
+#define wrm_TEST(name) (wrm_Test){ # name, name}
 
 #define wrm_FAIL() printf("Failed on line %d", __LINE__); return false
 
 #define wrm_PASS() printf("Passed!"); return true
 
-#define wrm_RUN(suite, tests, pre_each, post_each) int main(int argc, char **argv) \
+#define wrm_RUN(suite, tests, pre_each, post_each) int main() \
 {\
     printf("%s:\n", suite);\
     int passing = 0;\
-    for(int i = 0; i < sizeof(tests); i++) {\
+    for(size_t i = 0; i < sizeof(tests); i++) {\
         pre_each();\
         printf(" [%s]: ", tests[i].name);\
         if(tests[i].test()) { passing++; }\
         post_each();\
     }\
-    printf("%f%% passing (%d / %d total) \n", (float) passing / (float) sizeof(tests), passing, sizeof(tests));\
+    printf("%f%% passing (%d / %zu total) \n", (float) passing / (float) sizeof(tests), passing, sizeof(tests));\
     exit(passing == sizeof(tests) ? 0 : 1);\
 }
 
