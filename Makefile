@@ -1,12 +1,14 @@
-# important directories
+# output
 BUILD_DIR = build
+BIN_DIR = bin
+
+# input
 INC_DIR = include
 SRC_DIR = src
-BIN_DIR = bin
 TEST_DIR = test
 DEP_DIRS = glad stb
 WRM_DIR = wrm
-WRM_SUBDIRS = common gui input linmath memory render
+WRM_SUBDIRS = $(shell ls $(SRC_DIR)/$(WRM_DIR))
 
 
 # compiler variables
@@ -17,8 +19,8 @@ LFLAGS = -lm -lSDL2 -lGL -lfreetype -lconfig
 AR = ar 
 AFLAGS = rcs
 
-# target 1: build directories
-BUILD_DIRS = $(BIN_DIR) $(TEST_DIR)/$(BIN_DIR) $(BUILD_DIR) $(patsubst %,$(BUILD_DIR)/%,$(DEP_DIRS)) $(BUILD_DIR)/$(WRM_DIR) $(patsubst %,$(BUILD_DIR)/$(WRM_DIR)/%,$(WRM_SUBDIRS))
+# target 1: build directories (mirrors src structure)
+BUILD_DIRS = $(BIN_DIR) $(BIN_DIR)/$(TEST_DIR) $(BUILD_DIR) $(patsubst %,$(BUILD_DIR)/%,$(DEP_DIRS)) $(BUILD_DIR)/$(WRM_DIR) $(patsubst %,$(BUILD_DIR)/$(WRM_DIR)/%,$(WRM_SUBDIRS))
 
 $(BUILD_DIRS):
 	@echo create $@
@@ -32,7 +34,7 @@ OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRCS))
 .SECONDEXPANSION:
 $(OBJS): $$(patsubst $$(BUILD_DIR)/%.o,$$(SRC_DIR)/%.c,$$@)
 	@echo $@:
-	@cd $(CC) -c $(CFLAGS) $(IFLAGS) $^ -o $@ 
+	@$(CC) -c $(CFLAGS) $(IFLAGS) $^ -o $@ 
 
 
 # target 3: libwrm
@@ -49,7 +51,7 @@ TESTS = $(patsubst $(TEST_DIR)/$(SRC_DIR)/%.c,$(TEST_DIR)/$(BIN_DIR)/%,$(TEST_SR
 
 .PHONY:
 .SECONDEXPANSION:
-$(TESTS): $$(patsubst $$(TEST_DIR)/$$(BIN_DIR)/%,$$(TEST_DIR)/$$(SRC_DIR)/%.c,$$@)
+$(TESTS): $$(patsubst $$(BIN_DIR)/$$(TEST_DIR)/%,$$(TEST_DIR)/$$(SRC_DIR)/%.c,$$@)
 	@$(CC) $(CFLAGS) $(IFLAGS) $^ $(WRM) -o $@ $(LFLAGS)
 
 
