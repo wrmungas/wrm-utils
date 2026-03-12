@@ -67,10 +67,10 @@ mem_Ref mem_palloc(mem_Pool *p)
 {
     if(!p) { return mem_null; }
     if(p->free_cnt == 0) { 
-        if(p->final || !mem_resize) {
+        if(p->final || !internal_resize) {
             return mem_null;
         }
-        void *new_data = mem_resize(
+        void *new_data = internal_resize(
             p->data, 
             p->item_cap * MEM_GROWTH_FACTOR * p->item_size 
         );
@@ -101,13 +101,12 @@ void *mem_pderef(mem_Pool *p, mem_Ref r)
     return get_slot(p, r.idx);
 }
 
-void mem_pfree(mem_Pool *p, mem_Ref *r, void (*delete)(void *))
+void mem_pfree(mem_Pool *p, mem_Ref *r)
 {
     if(!p || !r || !r->src || r->src != p->id) {
         return;
     }
     u32 *slot = get_slot(p, r->idx);
-    if(delete) { delete(slot); }
 
     *slot = p->free_head;
     p->free_head = r->idx;
@@ -118,8 +117,8 @@ void mem_pfree(mem_Pool *p, mem_Ref *r, void (*delete)(void *))
 
 void mem_delete_pool(
     mem_Pool *p, 
-    wrm_FUNC(delete, void, void*), 
-    wrm_FUNC(free, void, void*)
+    wrm_FUNC(delete_item, void, void*), 
+    wrm_FUNC(release, void, void*)
 ) {
     if(!p || !p->id) {
         return;
@@ -127,11 +126,11 @@ void mem_delete_pool(
 
     // call delete on all slots currently in-use (this might be tough, or at least slow)
     for(u32 i = 0; i < p->item_cap; i++) {
-        if(!is_free(p, i) && delete) {
-            delete(get_slot(p, i));
+        if(!is_free(p, i) && delete_item) {
+            delete_item(get_slot(p, i));
         }
     }
 
     p->id = 0;
-    if(free) { free(p->data); }
+    if(release) { release(p->data); }
 }

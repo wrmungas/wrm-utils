@@ -151,19 +151,22 @@ void *mem_pderef(mem_Pool *p, mem_Ref r);
 
 /*
 Free a slot in a pool, and alters the Ref to be null
+Calls the provided delete() on the freed slot
 Does nothing with a null Ref
 */
 void mem_pfree(mem_Pool *p, mem_Ref *r);
 
 /*
-Calls the given delete function on all elements within the pool;
-then calls the given free function on the overall memory block
+Calls the given `delete_item` function on all elements within the pool, if it
+is not NULL.
+Then calls the given `release` function on the overall memory block, if it is
+not NULL.
 Marks the pool as unusable
 */
 void mem_delete_pool(
     mem_Pool *p, 
-    wrm_FUNC(delete, void, void*), 
-    wrm_FUNC(free, void, void*)
+    wrm_FUNC(delete_item, void, void*), 
+    wrm_FUNC(release, void, void*)
 );
 
 //--- Stack ---
