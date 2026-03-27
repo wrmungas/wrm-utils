@@ -8,9 +8,14 @@ SRC = src
 TEST = test
 DEPS = glad stb
 WRM = wrm
-MODULES = common gui input linmath log memory graphics
-MOD_PATH = $(SRC)/$(WRM)
-H_PATH = $(INC)/$(WRM)
+
+# module names
+WRMLIB = libwrmutils
+WRMMOD = common gui input linmath log memory graphics
+
+# paths
+MODPATH = $(SRC)/$(WRM)
+HPATH = $(INC)/$(WRM)
 
 # compiler variables
 CC = gcc
@@ -22,60 +27,53 @@ LFLAGS = -lm -lSDL2 -lGL -lfreetype -lconfig
 AR = ar 
 AFLAGS = rcs
 
-#--- setup build directories --------------------------------------------------
+#--- RULES --------------------------------------------------------------------
 
-# list of all directories needed for building
-BUILD_DIRS = $(BIN) $(BIN)/$(TEST) $(BUILD) $(patsubst %,$(BUILD)/%,$(DEPS)) $(BUILD)/$(WRM) $(patsubst %,$(BUILD)/$(WRM)/%,$(MODULES))
+.PHONY: all clean tests fresh
 
-$(BUILD_DIRS):
+all: deps modules library tests
+
+clean:
+	rm -rf build/*
+	rm -rf bin/*
+
+fresh: clean all
+
+tests:
+
+
+# create directories to mirror src/ in build/
+$(BUILD)/%: 
 	@echo create $@
 	@mkdir $@
 
-#--- build objects (Gemini) ---------------------------------------------------
-
-# 1. Improved Object Generation Logic
-SRCS = $(shell find $(SRC) -name '*.c')
-OBJS = $(patsubst $(SRC)/%.c,$(BUILD)/%.o,$(SRCS))
-
-# 2. Module Mapping Function
-# This selects objects belonging to src/wrm/<module_name>
-define get_mod_objs
-$(filter $(BUILD)/$(WRM)/$(1)/%,$(OBJS))
-endef
-
-# 3. Module Targets
-.PHONY: $(MODULES)
-$(MODULES): %: | $(BUILD_DIRS)
-	@echo "Building module [$@] and its dependencies..."
-	@# This recursively calls make for the specific object files in this module
-	$(MAKE) $(call get_mod_objs,$@)
-
-# 4. Specific module-to-module dependencies
-# If you run 'make gui', it will recursively check 'graphics' -> 'log' -> etc.
-memory: common
-input: common
-log: common memory
-graphics: log
-gui: graphics
-
-# Add those dependencies to the module targets
-$(foreach mod,$(MODULES),$(eval $(mod): $($(mod))))
-
-# 5. Standard Object Rule
-$(BUILD)/%.o: $(SRC)/%.c | $(BUILD_DIRS)
-	@mkdir -p $(dir $@)
+# compile src/a/b.c to build/a/b.o
+$(BUILD)/%.o: $(SRC)/%.c
 	$(CC) -c $(CFLAGS) $(IFLAGS) $< -o $@
 
+# compile test/a.c to test/bin/a (executable)
 
-#--- tests --------------------------------------------------------------------
+#--- BUILD DEPENDENCIES -------------------------------------------------------
 
-TEST_SRCS = $(wildcard $(TEST)/*.c)
-TESTS = $(patsubst $(TEST)/%.c,$(BIN)/$(TEST)/%,$(TEST_SRCS)) # only here to verify my patsubst logic
+deps: $(DEPS)
 
 .PHONY:
-.SECONDEXPANSION:
-$(TESTS): $$(patsubst $$(BIN)/$$(TEST)/%,$$(TEST)/%.c,$$@)
-	@$(CC) $(CFLAGS) $(IFLAGS) $^ -o $@ $(LFLAGS)
+$(DEPS): $(BUILD)/$@ $(shell find $(SRC)/$@/*.c)
+	@echo Building dependency $@
+
+#--- BUILD WRM MODULES --------------------------------------------------------
+
+modules: $(WRMMOD)
+
+.PHONY:
+$(WRMMOD): $(BUILD)/$(WRM)/$@ $(shell find $(MODPATH)/$@/*.c)
+	@echo Building module $@
+
+#--- BUILD WRM LIBRARY --------------------------------------------------------
+
+library: deps modules $(BIN)/$(WRMLIB)
+
+$(BIN)/$(WRMLIB): 
 
 #--- libwrm -------------------------------------------------------------------
 
@@ -98,18 +96,16 @@ all: $(BUILD_DIRS) $(MODULES) $(TESTS) $(WRM_LIB)
 .PHONY:
 default: all
 
+#--- TO TEST VARIABLES
 .PHONY:
 vars:
-	@echo BUILD_DIRS: $(BUILD_DIRS)
-	@echo MODULES: $(MODULES)
-	@echo OBJS: $(OBJS)
-	@echo TESTS: $(TESTS)
-	@echo WRM: $(WRM_LIB)
-
-
-.PHONY:
-clean:
-	-rm -rf $(BUILD_DIRS)
-
-.PHONY:
-fresh: clean all
+	@echo BUILD_DIRS: 
+	@echo $(BUILD_DIRS)
+	@echo MODULES: 
+	@echo $(MODULES)
+	@echo OBJS: 
+	@echo $(OBJS)
+	@echo TESTS: 
+	@echo $(TESTS)
+	@echo WRM: 
+	@echo $(WRM_LIB)
