@@ -142,10 +142,12 @@ Each commit should have a prefix that relates to what the commit accomplishes:
     - changes to comments in source files 
     - changes to text structure in source files (not the actual code content)
     - changes to markdown documentation
-- `[S]` (start/skeleton): 
+- `[S]` (skeleton): 
     - add empty/boilerplate files for a new feature
 - `[R]` (refactor): 
     - change a bunch of existing files to restructure something 
     - doesn't need to resolve all of the issues introduced by this
 - `[B]` (build): 
     - alter build files
+- `[G]` (git):
+    - alter gitignore and other git settings
