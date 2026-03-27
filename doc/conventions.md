@@ -70,7 +70,7 @@ Comment where necessary to describe the reasoning behind complex code (mainly
 for future me). Always comment function declarations to document the purpose, 
 arguments, return value, and anything non-obvious about behavior. 
 
-Use comments to structure files into sections as well
+Use comments to structure files into sections as well (see below)
 
 ## Source Code Structure
 
@@ -82,7 +82,7 @@ Headers should always be organized into the following sections:
 - Compile-time constants and macros
 - Type declarations
 - Type definitions
-- Global variables (marked as `extern`)
+- Global variables (marked explicitly as `extern`)
 - Function declarations
 
 Implementation files should always be organized into the following sections:
@@ -93,28 +93,34 @@ Implementation files should always be organized into the following sections:
 
 ## Directory Structure
 The project follows this structure:
-/
-- doc/
+`/`
+- `bin/`
+    - static library binary output location (empty until built)
+- `build/`
+    - intermediate object files used in build process (empty until built)
+- `doc/`
     - Markdown documentation for the project
-- include/
-    - (other)/
+- `include/`
+    - `(other)/`
         - headers for other code
-    - wrm/
+    - `wrm/`
         - headers for wrm code
-- resources/
+- `resources/`
     - resources used in testing
-- src/
-    - glad/
+- `src/`
+    - `glad/`
         - source for glad
-    - stb/
+    - `stb/`
         - file defining stb implementation
-    - shaders/
+    - `shaders/`
         - default shader files
-    - wrm/
-        - (module)/
+    - `wrm/`
+        - `(module)/`
             - internal header for each module
             - source files implementing a group of related operations
-- test/
+- `test/`
+    - `bin/`
+        - test binary output location (empty until built)
     - common test header
     - test source files for each module
 
@@ -125,12 +131,21 @@ Commit messages are all implicitly related to the content of the branch they are
 
 Commits should be done frequently for small sets of related changes to a few files
 
-Prefixes relate to the type of action:
-- `[H]`: (header):create/edit header files
-- `[I]`: (implementation): create/edit implementation files (takes precedence over header)
-- `[T]`: (test): create/edit test files (should be separate from I)
-- `[D]`: (documentation): add documentation, either in comments in source files (including reorganizing 
-    source files without changing the code), or in separate markdown docs
-- `[S]`: (start/skeleton): add empty/boilerplate files for a new feature
-- `[R]`: (refactor): change a bunch of existing files to restructure something - doesn't need to resolve
-    all of the issues introduced by this
+Each commit should have a prefix that relates to what the commit accomplishes:
+- `[H]` (header):
+    - create/edit header files
+- `[I]` (implementation): 
+    - create/edit implementation files (takes precedence over header)
+- `[T]` (test): 
+    - create/edit test files (should be separate from I)
+- `[D]` (documentation): 
+    - changes to comments in source files 
+    - changes to text structure in source files (not the actual code content)
+    - changes to markdown documentation
+- `[S]` (start/skeleton): 
+    - add empty/boilerplate files for a new feature
+- `[R]` (refactor): 
+    - change a bunch of existing files to restructure something 
+    - doesn't need to resolve all of the issues introduced by this
+- `[B]` (build): 
+    - alter build files
